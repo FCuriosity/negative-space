@@ -21,7 +21,7 @@ await cp('dist/extension',`${bundle}/Resources/extension`,{recursive:true});
 await writeFile(`${bundle}/Resources/browser-host.sh`,'#!/bin/sh\nSCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"\nexec "$SCRIPT_DIR/../MacOS/Liubai" --browser-host "$@"\n',{mode:0o755});
 const cache=resolve('work/swift-browser-cache');
 await mkdir(cache,{recursive:true});
-const result=spawnSync('swiftc',['-swift-version','5','-module-cache-path',cache,'-O','apps/macos/main.swift','apps/macos/System.swift','apps/macos/BrowserBridge.swift','-o',`${bundle}/MacOS/Liubai`],{stdio:'inherit'});
+const result=spawnSync('swiftc',['-swift-version','5','-target',`${process.arch==='arm64'?'arm64':'x86_64'}-apple-macosx13.0`,'-module-cache-path',cache,'-O','apps/macos/main.swift','apps/macos/System.swift','apps/macos/BrowserBridge.swift','-o',`${bundle}/MacOS/Liubai`],{stdio:'inherit'});
 if(result.status!==0) process.exit(result.status??1);
 const clean=spawnSync('xattr',['-cr',resolve('dist/留白.app')],{stdio:'inherit'});
 if(clean.status!==0) process.exit(clean.status??1);

@@ -55,6 +55,7 @@ jobs:
       - run: pnpm windows:build
       - run: ./apps/windows/build/resources/native/Liubai.Native.exe --self-test
       - run: npm install --prefix apps/windows --no-audit --no-fund
+      - run: node apps/windows/node_modules/electron/install.js
       - name: Windows UI and native smoke test
         shell: pwsh
         run: |
