@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "留白 · 少一点推荐",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "本地隐藏推荐流与短视频入口，保留你主动选择的内容",
   "permissions": [
     "storage",
     "nativeMessaging",
-    "tabs"
+    "tabs",
+    "alarms"
   ],
   "action": {
     "default_title": "留白",

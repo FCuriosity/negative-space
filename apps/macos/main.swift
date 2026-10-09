@@ -84,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
     var lastDisk=""
     var lastError=""
     let browserBridge=BrowserBridge()
-    var browserLastSeen:Double=0
+    var browserHealth=BrowserConnectionHealth()
     var browserError=""
     var installed: [[String:Any]]=[]
     var observers: [NSObjectProtocol]=[]
@@ -105,15 +105,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
                     guard let host=request["host"] as? String,host.count<254,host.range(of:"^[a-z0-9.-]*$",options:.regularExpression) != nil,let visit=request["visit"] as? String,visit.count<100 else{throw LocalError(message:"网页消息格式无效")}
                     let front=NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
                     let expected=request["browser"] as? String == "edge" ? "com.microsoft.edgemac" : "com.google.Chrome"
-                    self.browserLastSeen=milliseconds()
+                    guard let browser=request["browser"] as? String,["chrome","edge"].contains(browser) else {throw LocalError(message:"浏览器标识无效")}
+                    self.browserHealth.receive(browser:browser,wallTime:milliseconds(),monotonicTime:monotonicMilliseconds())
                     try self.publish()
+                    // Heartbeats only refresh connectivity, never visits, usage or break state.
+                    if request["operation"] as? String == "heartbeat" {
+                        return ["connected":true,"enabled":(try decode(self.engine.call("status")) as? [String:Any])?["enabled"] ?? false]
+                    }
                     guard expected==front,request["active"] as? Bool == true else {return ["inactive":true,"enabled":(try decode(self.engine.call("status")) as? [String:Any])?["enabled"] ?? false]}
                     let active=true
                     let result=try self.engine.call("observeWebsite",[["host":host,"visit":visit,"active":active,"at":milliseconds(),"monotonicMs":monotonicMilliseconds(),"idleSeconds":CGEventSource.secondsSinceLastEventType(.combinedSessionState,eventType:CGEventType(rawValue:UInt32.max)!),"locked":self.locked]])
                     if request["operation"] as? String == "allow",let reply=try decode(result) as? [String:Any],let target=reply["targetId"] as? String {
                         _ = try self.engine.call("allowWebsite",[target,milliseconds(),monotonicMilliseconds(),request["typed"] as? String ?? "",request["reason"] as? String ?? ""])
                     }
-                    try self.persist();self.browserLastSeen=milliseconds();try self.publish()
+                    try self.persist();try self.publish()
                     return try decode(result) as? [String:Any] ?? [:]
                 }catch{return ["error":error.localizedDescription]}
             }
@@ -198,7 +203,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
     }
     func status() throws -> [String:Any] {
         var data=try decode(engine.call("status")) as! [String:Any]
-        data["browserConnected"]=milliseconds()-browserLastSeen<10000; data["browserLastSeen"]=browserLastSeen
+        let browsers=browserHealth.connectedBrowsers(at:monotonicMilliseconds())
+        data["browserConnected"] = !browsers.isEmpty
+        data["connectedBrowsers"]=browsers; data["browserLastSeen"]=browserHealth.lastSeen
         data["installedApps"]=installed; data["platform"]="macOS"; data["lastError"]=lastError
         data["idleSeconds"]=CGEventSource.secondsSinceLastEventType(.combinedSessionState,eventType:CGEventType(rawValue:UInt32.max)!)
         let front=NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""

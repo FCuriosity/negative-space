@@ -1,6 +1,19 @@
 import Foundation
 import Darwin
 
+// A 30-second extension alarm renews this lease, even on unmanaged pages.
+// Monotonic time avoids false disconnects after wall-clock adjustments.
+struct BrowserConnectionHealth {
+    private var seen:[String:Double]=[:]
+    private(set) var lastSeen:Double=0
+    mutating func receive(browser:String,wallTime:Double,monotonicTime:Double) {
+        seen[browser]=monotonicTime; lastSeen=wallTime
+    }
+    func connectedBrowsers(at now:Double) -> [String] {
+        seen.filter { now >= $0.value && now-$0.value < 90000 }.map { $0.key }.sorted()
+    }
+}
+
 private let bridgeDirectory=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("留白")
 private var bridgePath:String { bridgeDirectory.appendingPathComponent("browser.sock").path }
 private func address(_ path:String) throws -> sockaddr_un {
@@ -66,6 +79,14 @@ func installBrowserHost(browser:String) throws -> String {
 }
 
 func browserFrameSelfTest() throws {
+    var health=BrowserConnectionHealth()
+    precondition(health.connectedBrowsers(at:0).isEmpty)
+    health.receive(browser:"edge",wallTime:1000,monotonicTime:1000)
+    precondition(health.connectedBrowsers(at:31000)==["edge"])
+    health.receive(browser:"chrome",wallTime:500,monotonicTime:60000)
+    precondition(health.connectedBrowsers(at:91000)==["chrome"])
+    precondition(health.connectedBrowsers(at:150000).isEmpty)
+
     var sockets:[Int32]=[0,0]
     guard socketpair(AF_UNIX,SOCK_STREAM,0,&sockets)==0 else{throw LocalError(message:"无法创建浏览器协议测试连接")}
     defer{Darwin.close(sockets[0]);Darwin.close(sockets[1])}
