@@ -14,7 +14,7 @@ if(smoke)app.setPath('userData',join(app.getPath('temp'),'liubai-smoke-'+process
 else app.setPath('userData',join(app.getPath('appData'),'Liubai'));
 let window,tray,helper,server,controller,db,quitting=false,lastState='',sequence=0,lastDisk='',sampledMono=0;
 const pending=new Map();let queue=Promise.resolve();
-function serial(task){const next=queue.then(task);queue=next.catch(error=>{controller?.fail(error);publish();});return next;}
+function serial(task){const next=queue.then(task);queue=next.catch(()=>{});return next;}
 function native(kind,args={}){return new Promise((resolve,reject)=>{
  if(!helper||helper.killed)return reject(Error('系统连接未就绪'));
  const id=String(++sequence);const timeout=setTimeout(()=>{pending.delete(id);reject(Error('系统连接超时'));},5000);
@@ -48,7 +48,7 @@ async function setup(){
  helper.on('error',error=>{controller.fail(error);publish();});helper.on('exit',()=>{for(const p of pending.values()){clearTimeout(p.timeout);p.reject(Error('系统连接已关闭'));}pending.clear();if(!quitting){controller.fail('系统后台已退出，请重启留白');publish();}});
  helper.stderr.on('data',()=>{});
  createInterface({input:helper.stdout}).on('line',line=>{try{const message=JSON.parse(line);if(message.type==='response'){const p=pending.get(message.id);if(p){clearTimeout(p.timeout);pending.delete(message.id);message.error?p.reject(Error(message.error)):p.resolve(message.result);}return;}
- if(message.type==='observation'){sampledMono=performance.now();void serial(async()=>{await controller.tick(message.data);publish();}).catch(()=>{});}else if(message.error)controller.fail(message.error);
+ if(message.type==='observation'){sampledMono=performance.now();void serial(async()=>{await controller.tick(message.data);publish();}).catch(error=>{controller.fail(error);publish();});}else if(message.error)controller.fail(message.error);
  }catch(error){controller.fail(error);}});
  const page=join(here,'web','index.html');const pageURL=pathToFileURL(page).href;
  window=new BrowserWindow({width:1280,height:900,minWidth:860,minHeight:680,title:'留白',show:false,icon:join(resources,'brand','256x256.png'),webPreferences:{preload:join(here,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
@@ -77,7 +77,7 @@ async function setup(){
  controller.installed=await native('installed');publish();
  setInterval(()=>{if(performance.now()-sampledMono>5000){controller.fail('系统采样中断，请重启留白');publish();}},3000).unref();
  setInterval(()=>{native('installed').then(apps=>{controller.installed=apps;}).catch(()=>{});},60000).unref();
- if(smoke){await new Promise(resolve=>setTimeout(resolve,2500));const result=await window.webContents.executeJavaScript("({bridge:!!window.liubaiNative,ready:document.body.innerText.includes('留白')})");if(!result.bridge||!result.ready||!controller.observation.at)throw Error('Windows 界面或系统采样冒烟测试失败');console.log('PASS: Windows renderer, IPC, SQLite and real Win32 observations');app.quit();}
+ if(smoke){await new Promise(resolve=>setTimeout(resolve,2500));const result=await window.webContents.executeJavaScript("({bridge:!!window.liubaiNative,ready:!!document.querySelector('.sidebar')})");if(!result.bridge||!result.ready||!controller.observation.at)throw Error('Windows 界面或系统采样冒烟测试失败');const status=await window.webContents.executeJavaScript("window.liubaiNative.call('native_status')");if(status.platform!=='Windows'||status.lastError)throw Error('Windows IPC 状态校验失败：'+JSON.stringify(status));console.log('PASS: Windows renderer, IPC, SQLite and real Win32 observations');app.quit();}
 }
 if(!app.requestSingleInstanceLock())app.quit();else{
  app.on('second-instance',show);app.on('window-all-closed',()=>{});

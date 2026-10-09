@@ -67,6 +67,19 @@ jobs:
       - run: ./apps/windows/node_modules/.bin/electron-builder --projectDir apps/windows --win nsis --x64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Install and launch the Windows release
+        shell: pwsh
+        run: |
+          $installer = (Get-ChildItem dist/release/*-setup.exe).FullName
+          $destination = "$env:RUNNER_TEMP\LiubaiInstall"
+          $install = Start-Process $installer -ArgumentList @('/S', "/D=$destination") -PassThru
+          if (-not $install.WaitForExit(120000)) { $install.Kill(); throw "Installer timed out" }
+          if ($install.ExitCode -ne 0) { throw "Installer failed: $($install.ExitCode)" }
+          $p = Start-Process "$destination\Liubai.exe" -ArgumentList '--smoke-test' -PassThru -RedirectStandardOutput installed-out.txt -RedirectStandardError installed-err.txt
+          if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "Installed app timed out" }
+          Get-Content installed-out.txt
+          Get-Content installed-err.txt
+          if ($p.ExitCode -ne 0) { throw "Installed app failed: $($p.ExitCode)" }
       - uses: actions/upload-artifact@v4
         with:
           name: windows-x64
