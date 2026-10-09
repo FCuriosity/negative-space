@@ -233,3 +233,13 @@ input[type=checkbox]:checked{border-color:#245c50;background:#245c50 url("data:i
 @media(prefers-reduced-motion:reduce){.journal-calendar-toggle>svg{transition:none}}
 
 .allowed-window{border:1px solid var(--line);border-radius:8px;padding:14px;margin:16px 0;min-width:0}.allowed-window legend{font-size:13px;color:var(--secondary);padding:0 6px}.allowed-window .day-picker{flex-wrap:wrap}.window-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;font-size:12px;color:var(--secondary)}.window-review-help{font-size:12px;line-height:1.9;background:#edf1eb;border-left:3px solid #829b8d;padding:12px 14px;margin-top:14px;color:#354b43}.opening-intention{border:0;padding:0;margin:20px 0;min-width:0}.opening-intention legend{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--ink)}.opening-intention>div{display:flex;gap:10px}.opening-intention button{flex:1;padding:12px;border:1px solid #adb9b2;border-radius:7px;background:var(--surface);font-size:13px}.opening-intention button[aria-pressed=true]{background:#e0ebe2;border:2px solid #456f60;padding:11px;font-weight:650;color:#234b3c}.opening-intention p{font-size:12px;color:var(--secondary);margin-top:8px}
+
+/* Equal-height journal cards keep long histories inside their own timelines. */
+.journal-scroll-panel{height:clamp(580px,78vh,760px);display:flex;flex-direction:column;overflow:hidden}
+.journal-scroll-panel>.journal-column-heading,.journal-scroll-panel>.journal-app-filter,.journal-scroll-panel>.journal-count-help{flex-shrink:0}
+.journal-scroll-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding-right:6px;scrollbar-width:thin;scrollbar-color:#9aafa2 transparent}
+.journal-scroll-body:focus-visible{outline:2px solid #527962;outline-offset:2px;border-radius:4px}
+.journal-scroll-body::-webkit-scrollbar{width:7px}
+.journal-scroll-body::-webkit-scrollbar-thumb{background:#9aafa2;border-radius:7px}
+.journal-scroll-body::-webkit-scrollbar-track{background:transparent}
+.journal-scroll-body>.journal-calendar>.journal-calendar-node:first-child{margin-top:0}

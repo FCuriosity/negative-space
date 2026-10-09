@@ -321,7 +321,14 @@ if CommandLine.arguments.contains("--browser-host") {
     let at=milliseconds()
     let fake: [String:Any]=["pid":123,"startedAt":at-1000,"executable":"/test/bili","protected":false,"bundleId":"com.bilibili.bilibiliPC"]
     var testPolicy=try decode(engine.call("state")) as! [String:Any]
-    var testRules=testPolicy["rules"] as! [[String:Any]]
+    precondition((testPolicy["rules"] as! [[String:Any]]).isEmpty)
+    var firstRunRejected=false
+    do { _ = try engine.call("setEnabled",[true]) } catch { firstRunRejected=true }
+    precondition(firstRunRejected)
+    var testSettings=testPolicy["settings"] as! [String:Any]
+    testSettings["onboarding"]=["stage":"complete"]
+    testPolicy["settings"]=testSettings
+    var testRules:[[String:Any]]=[["id":"self-test-rule","name":"测试规则","targetId":"bilibili-app","listId":"entertainment","enabled":true,"mode":"gentle","dailyMinutes":30,"dailyOpens":NSNull(),"weekdays":[:],"allowedWindows":[],"breakEveryMinutes":NSNull(),"breakMinutes":5,"graceSeconds":60,"forceQuitOptIn":false]]
     var calendar=Calendar(identifier:.gregorian); calendar.timeZone=TimeZone(identifier:"Asia/Shanghai")!
     let components=calendar.dateComponents([.hour,.minute],from:Date(timeIntervalSince1970:at/1000))
     let windowStart=((components.hour! * 60 + components.minute!) + 60) % 1440

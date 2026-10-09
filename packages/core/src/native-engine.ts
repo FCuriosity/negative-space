@@ -1,3 +1,4 @@
+import {firstRunState} from './onboarding';
 import {hasRecoveryReason} from './reason-tags';
 import { menuBarState } from './menu-bar';
 import {advanceFocusSchedule} from './focus-spaces';
@@ -47,6 +48,11 @@ export function nativeInitialState(): AppState {
   return state;
 }
 
+/** New installations start without active presets; existing snapshots are untouched. */
+export function firstRunSnapshot():string {
+ return JSON.stringify({format:1,app:firstRunState(nativeInitialState()),enabled:false,breaks:{},grants:{},notices:[]});
+}
+
 export class NativeEngine {
   data: NativeSnapshot;
   private webTracker=new WebQuotaTracker();
@@ -67,7 +73,7 @@ export class NativeEngine {
   serialize() { return JSON.stringify(this.data); }
   policy() { return this.data.app; }
   menuBar(now:number) { return menuBarState(this.data.app,this.data.enabled,{...this.data.breaks,...this.webTracker.breakStates()},now); }
-  setEnabled(enabled: boolean) { this.data.enabled=enabled; this.webTracker.reset(); this.previous=null; this.initialized=false; this.lastFrontKey=null; this.interruption=null; this.data.notices=[]; this.data.grants={}; }
+  setEnabled(enabled: boolean) { if(enabled&&this.data.app.settings.onboarding&&this.data.app.settings.onboarding.stage!=='complete'){if(!this.data.app.rules.some(r=>r.enabled))throw Error('请先完成一条规则的安全演示');this.data.app.settings.onboarding={...this.data.app.settings.onboarding,stage:'complete'};}this.data.enabled=enabled; this.webTracker.reset(); this.previous=null; this.initialized=false; this.lastFrontKey=null; this.interruption=null; this.data.notices=[]; this.data.grants={}; }
   /** The native engine owns usage/opens/rewards. UI snapshots cannot overwrite them. */
   updatePolicy(raw: string, now: number) {
     const candidate=withNativeTargets(parseState(JSON.parse(raw)));

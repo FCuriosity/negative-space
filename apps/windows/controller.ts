@@ -1,4 +1,4 @@
-import { NativeEngine, type NativeObservation, type NativeProcess } from '../../packages/core/src/native-engine';
+import { firstRunSnapshot, NativeEngine, type NativeObservation, type NativeProcess } from '../../packages/core/src/native-engine';
 import { mayForceQuit } from '../../packages/core/src/enforcement';
 export const appNames: Record<string,string> = {'com.bilibili.bilibiliPC':'哔哩哔哩 App','com.xingin.discover':'小红书 App','com.tencent.xinWeChat':'微信','com.valvesoftware.steam':'Steam'};
 export interface SystemPort {
@@ -12,7 +12,7 @@ export class WindowsController {
   lastError='';
   private seen:Record<string,number>={};
   private lastSeen=0;
-  constructor(raw:string|null,private system:SystemPort,private persist:(raw:string)=>void,private mono=()=>performance.now()) {this.engine=new NativeEngine(raw);}
+  constructor(raw:string|null,private system:SystemPort,private persist:(raw:string)=>void,private mono=()=>performance.now()) {this.engine=new NativeEngine(raw??firstRunSnapshot());}
   commit(){this.persist(this.engine.serialize());}
   fail(error:unknown){this.lastError=String(error);this.engine.setEnabled(false);try{this.commit();}catch{}}
   async tick(o:NativeObservation){

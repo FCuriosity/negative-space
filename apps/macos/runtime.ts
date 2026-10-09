@@ -1,6 +1,6 @@
-import { NativeEngine, type NativeObservation } from '../../packages/core/src/native-engine';
+import { firstRunSnapshot, NativeEngine, type NativeObservation } from '../../packages/core/src/native-engine';
 let engine: NativeEngine;
-export function initialize(raw: string | null) { engine=new NativeEngine(raw); return state(); }
+export function initialize(raw: string | null) { engine=new NativeEngine(raw??firstRunSnapshot()); return state(); }
 export function state() { return JSON.stringify(engine.policy()); }
 export function snapshot() { return engine.serialize(); }
 export function tick(observation: NativeObservation) { return JSON.stringify(engine.tick(observation)); }

@@ -1,11 +1,11 @@
 import {describe,it,expect,vi} from 'vitest';
 import {RECOVERY_REASON_TAG} from '../../../packages/core/src/reason-tags';
 import {WindowsController} from '../controller';
-import type {NativeObservation,NativeProcess} from '../../../packages/core/src/native-engine';
+import {NativeEngine,type NativeObservation,type NativeProcess} from '../../../packages/core/src/native-engine';
 const at=Date.now();
 const process:NativeProcess={pid:123,startedAt:at-1000,executable:'C:\\WeChat.exe',protected:false,bundleId:'com.tencent.xinWeChat'};
 const observation=(seconds:number,front:string|null=process.bundleId):NativeObservation=>({at:at+seconds*1000,monotonicMs:100000+seconds*1000,idleSeconds:0,locked:false,frontBundleId:front,processes:[process]});
-function fixture(){let disk='';let mono=0;const perform=vi.fn(async(_kind:string,_process:NativeProcess)=>true),show=vi.fn();const c=new WindowsController(null,{perform,show},raw=>{disk=raw;},()=>mono);return {c,perform,show,disk:()=>disk,advance:(ms:number)=>{mono+=ms;}};}
+function fixture(){let disk='';let mono=0;const perform=vi.fn(async(_kind:string,_process:NativeProcess)=>true),show=vi.fn();const c=new WindowsController(new NativeEngine().serialize(),{perform,show},raw=>{disk=raw;},()=>mono);return {c,perform,show,disk:()=>disk,advance:(ms:number)=>{mono+=ms;}};}
 describe('Windows native integration controller',()=>{
  it('persists each return from another foreground app exactly once',async()=>{
   const {c,disk}=fixture();await c.call('set_management',{enabled:true});

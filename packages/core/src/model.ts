@@ -26,14 +26,14 @@ export interface OpenEvent { id: string; targetId: string; at: number; kind: 'la
 export interface FocusReflection { sessionId: string; text: string; createdAt: number; updatedAt: number }
 export interface AppOpenReason { id: string; targetId: string; at: number; text: string; source: 'open' | 'override'; eventId?: string; restriction?: Reason; grantedMinutes?: number }
 export interface Reward { id: string; sessionIds: string[]; targetId: string; day: string; minutes: number }
-export interface Task { id: string; title: string; projectId: string; done: boolean }
+export interface Task { id: string; title: string; projectId: string; done: boolean; day?:string; createdAt?:number; completedAt?:number; deletedAt?:number; carriedFrom?:string; legacyImported?:boolean }
 export interface Habit { id: string; title: string; completedDays: string[] }
 export interface Project { id: string; name: string; color: string }
 export interface AuditEvent { id: string; at: number; type: 'focus-started' | 'focus-completed' | 'focus-cancelled' | 'rule-updated'; message: string }
 export interface AppState {
   version: 1; focusBackgrounds:{id:string;name:string;dataUrl:string}[]; focusSpaces:FocusSpace[]; scheduleRuns:ScheduleRun[]; rules: Rule[]; targets: Target[]; lists: Blocklist[]; schedules: Schedule[]; sessions: FocusSession[];
   usage: UsageInterval[]; opens: OpenEvent[]; reflections: FocusReflection[]; openReasons: AppOpenReason[]; rewards: Reward[]; tasks: Task[]; habits: Habit[]; projects: Project[]; audit: AuditEvent[];
-  settings: { mirrorLakeCharacterGender?:'male'|'female'; timezone: string; idleSeconds: number; rewardEveryMinutes: number; rewardMinutes: number; rewardTargetId: string; retentionDays: number; reasonTags: string[]; focusDurationMinutes: number;focusTimerMode?:'countdown'|'countup';focusBackgroundId?:string;focusTone?:FocusSpace['tone'] };
+  settings: { onboarding?:{stage:'pending'|'ready'|'complete';ruleId?:string}; mirrorLakeCharacterGender?:'male'|'female'; timezone: string; idleSeconds: number; rewardEveryMinutes: number; rewardMinutes: number; rewardTargetId: string; retentionDays: number; reasonTags: string[]; focusDurationMinutes: number;focusTimerMode?:'countdown'|'countup';focusBackgroundId?:string;focusTone?:FocusSpace['tone'] };
 }
 export interface EvaluationContext {
   now: number; timezone: string; usedSeconds: number; opens: number; continuousSeconds: number;

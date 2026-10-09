@@ -38,12 +38,12 @@ function group<T>(items: T[], key: (item: T) => string): [string, T[]][] {
 }
 
 /** Month → calendar week → day; each event belongs to exactly one day and month. */
-export function buildJournalCalendar<T>(items: T[], at: (item: T) => number, now: number, timezone: string): JournalCalendarNode<T>[] {
+export function buildJournalCalendar<T>(items: T[], at: (item: T) => number, now: number, timezone: string, calendarDay?: (item:T)=>string): JournalCalendarNode<T>[] {
   const today = dayKey(now, timezone);
   const currentMonth = today.slice(0, 7);
   const currentWeek = calendarWeekStart(today);
   const sorted = [...items].sort((a, b) => at(b) - at(a));
-  const dates = new Map(sorted.map(item => [item, dayKey(at(item), timezone)]));
+  const dates = new Map(sorted.map(item => [item, calendarDay?calendarDay(item):dayKey(at(item), timezone)]));
   return group(sorted, item => dates.get(item)!.slice(0, 7)).map(([month, monthItems]) => {
     const start = `${month}-01`;
     const monthDate = new Date(`${start}T12:00:00Z`);
