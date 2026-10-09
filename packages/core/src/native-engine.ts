@@ -1,3 +1,4 @@
+import {hasRecoveryReason} from './reason-tags';
 import { menuBarState } from './menu-bar';
 import {advanceFocusSchedule} from './focus-spaces';
 import { WebQuotaTracker, type WebObservation } from './web-quota';
@@ -168,6 +169,22 @@ export class NativeEngine {
     this.data.app=pruneHistory(app,at);
     return commands;
   }
+  private closedOpeningState(id:string,text:string,now:number) {
+    const event=this.data.app.opens.find(o=>o.id===id);
+    if(!event || this.data.app.opens.filter(o=>o.targetId===event.targetId).at(-1)?.id!==id) throw new Error('这次打开已结束，请使用当前打开记录');
+    if(!hasRecoveryReason(text)) throw new Error('请选择「无意识，但改邪归正」后确认关闭');
+    let state=saveOpenReason(this.data.app,id,text,now,false,'accidental');
+    if(isMirrorOpening(event)) state=classifyOpening(state,id,'accidental');
+    return state;
+  }
+  closeOpeningProcess(id:string,text:string,now:number,processes:NativeProcess[]) {
+    this.closedOpeningState(id,text,now);
+    const event=this.data.app.opens.find(o=>o.id===id)!;
+    const process=processes.find(p=>!p.protected && `${p.pid}:${p.startedAt}:${p.bundleId}`===event.processKey && this.target(p.bundleId)?.id===event.targetId);
+    if(!process) throw new Error('原应用进程已退出或变化，请刷新后重试');
+    return process;
+  }
+  recordClosedOpening(id:string,text:string,now:number) {this.data.app=this.closedOpeningState(id,text,now);}
   prepareReturn(identity:NativeProcess) { this.interruption={key:`${identity.pid}:${identity.startedAt}:${identity.bundleId}`,seen:true}; this.lastFrontKey='liubai'; }
   finishCountUp(id:string,now:number) { this.data.app=finishCountUp(this.data.app,id,now); }
   saveReflection(sessionId:string,text:string,now:number) { this.data.app=saveReflection(this.data.app,sessionId,text,now); }

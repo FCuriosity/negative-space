@@ -1,3 +1,4 @@
+import {hasRecoveryReason} from '../../../packages/core/src/reason-tags';
 import { OpeningIntention } from './OpeningIntention';
 import { ReasonTags } from './ReasonTags';
 import { useState } from 'react';
@@ -26,6 +27,7 @@ export function NativeChallenge({ notice,status,onStatus,notify,state,onSaveTags
   const reviewReady=!!reason.trim()&&(!needsReview||!!intention);
   const can=canOverride(mode,notice.createdMono,status.monotonicMs,typed,reason)&&reviewReady;
   const action=async(method:string,args:Record<string,unknown>={})=>{setBusy(true);try{const result=await callNative<NativeStatus>(method,{noticeId:notice.id,...args});if(method==='allow_app')onStatus(result);else if(method==='quit_now'||method==='force_quit')notify('已向应用发送退出请求');}catch(e){notify(String(e));}finally{setBusy(false);}};
+  const leave=async()=>{if(!event)return;setBusy(true);try{await callNative('close_opening',{id:event.id,text:reason});onStatus(await callNative<NativeStatus>('native_status'));notify('理由已记录，已请求正常关闭应用');}catch(e){notify(String(e));}finally{setBusy(false);}};
   const record=async()=>{if(!event)return;setBusy(true);try{await callNative('save_open_reason',{id:event.id,text:reason,intention,skip:false,returnToApp:false});notify(intention==='accidental'?'理由已保存，这次无意识打开已记入镜湖':'理由与意图已保存，不增加黑洞');}catch(e){notify(String(e));}finally{setBusy(false);}};
   return <div className="modal-backdrop"><section className="modal narrow" role="dialog" aria-modal="true" aria-labelledby="native-challenge-title">
     <div className="eyebrow">{modeLabels[mode]} · 电脑应用</div><h2 id="native-challenge-title">{needsReview?'在约定之外，先停一下':`${notice.name} 需要休息一下`}</h2><p>{notice.name} · {reasonLabels[notice.decision.reason!]}</p>
@@ -35,7 +37,7 @@ export function NativeChallenge({ notice,status,onStatus,notify,state,onSaveTags
     {needsReview&&<><OpeningIntention value={intention} onChange={setIntention} disabled={busy}/><button className="button secondary" disabled={busy||!reviewReady} onClick={()=>void record()}>记录理由与判断</button>{event?.reasonStatus==='recorded'&&<p className="small muted">已保存 · {event.intention==='accidental'?'已记入镜湖':'不增加黑洞'}可修改后再次保存</p>}</>}
     {mode==='friction'&&<><p>临时继续使用需要等待 <strong>{wait}</strong> 秒、填写至少 5 字理由并完成挑战</p><label>完整输入「{CHALLENGE_TEXT}」<input autoComplete="off" value={typed} onChange={e=>setTyped(e.target.value)}/></label></>}
     {(mode==='strict'||mode==='managed')&&<p>当前等级不允许临时放行，记录理由与判断不会解除限制</p>}
-    <div className="native-notice-actions"><button className="button secondary" disabled={busy} onClick={()=>action('return_to_app')}>回到应用保存工作</button><button className="button secondary" disabled={busy} onClick={()=>action('quit_now')}>我已保存，正常退出</button>{(mode==='gentle'||mode==='friction')&&<button className="button primary" disabled={busy||!can} onClick={()=>action('allow_app',{typed,reason,intention:needsReview?intention:undefined})}>记录并继续使用 5 分钟</button>}</div>
+    <div className="native-notice-actions">{event&&hasRecoveryReason(reason)&&<button className="button primary" disabled={busy} onClick={()=>void leave()}>记录理由，关闭应用</button>}<button className="button secondary" disabled={busy} onClick={()=>action('return_to_app')}>回到应用保存工作</button><button className="button secondary" disabled={busy} onClick={()=>action('quit_now')}>我已保存，正常退出</button>{(mode==='gentle'||mode==='friction')&&<button className="button primary" disabled={busy||!can} onClick={()=>action('allow_app',{typed,reason,intention:needsReview?intention:undefined})}>记录并继续使用 5 分钟</button>}</div>
     {notice.quit.forceQuitOptIn&&notice.quit.stage==='needs-confirmation'&&<div className="form-section"><label className="checkbox-line"><input type="checkbox" checked={forceConfirm} onChange={e=>setForceConfirm(e.target.checked)}/>我确认已保存，理解强制退出可能丢失数据</label><button className="button secondary" disabled={!forceConfirm||busy} onClick={()=>action('force_quit',{confirmed:forceConfirm})}>强制退出此应用</button></div>}
   </section></div>;
 }

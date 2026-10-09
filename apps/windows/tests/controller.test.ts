@@ -1,4 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
+import {RECOVERY_REASON_TAG} from '../../../packages/core/src/reason-tags';
 import {WindowsController} from '../controller';
 import type {NativeObservation,NativeProcess} from '../../../packages/core/src/native-engine';
 const at=Date.now();
@@ -54,6 +55,37 @@ describe('Windows native integration controller',()=>{
   await expect(c.call('quit_now',{noticeId:c.engine.data.notices[0].id})).rejects.toThrow('操作未完成');
   expect(c.status().enabled).toBe(true);
   await c.tick(observation(60));expect(c.status().lastError).toContain('未能请求应用正常关闭');
+ });
+ it('records the recovery reason and normally closes only that opening, without activation or a grant',async()=>{
+  const {c,perform}=fixture();await c.call('set_management',{enabled:true});
+  await c.tick(observation(0,null));await c.tick(observation(1));
+  const id=c.engine.policy().opens[0].id;
+  await c.call('close_opening',{id,text:RECOVERY_REASON_TAG});
+  expect(perform.mock.calls.map(x=>x[0])).toEqual(['quit']);
+  expect(c.engine.policy().openReasons[0].text).toBe(RECOVERY_REASON_TAG);
+  expect(c.engine.policy().opens).toHaveLength(1);
+  expect(c.engine.policy().opens[0].reasonStatus).toBe('recorded');expect(c.engine.data.grants).toEqual({});
+ });
+ it('allows choosing to close outside an allowed window even in strict mode',async()=>{
+  const {c,perform}=fixture();await c.call('set_management',{enabled:true});await c.tick(observation(0,null));await c.tick(observation(1));
+  const event=c.engine.policy().opens[0];event.outsideAllowedWindow=true;event.intention='pending';
+  c.engine.policy().rules.find(r=>r.targetId==='wechat')!.mode='strict';
+  await c.call('close_opening',{id:event.id,text:RECOVERY_REASON_TAG});
+  expect(c.engine.policy().opens[0].intention).toBe('accidental');expect(perform.mock.calls[0][0]).toBe('quit');expect(c.engine.data.grants).toEqual({});
+ });
+ it('keeps a reason pending when normal close is rejected',async()=>{
+  const {c,perform}=fixture();await c.call('set_management',{enabled:true});await c.tick(observation(0,null));await c.tick(observation(1));
+  perform.mockResolvedValue(false);
+  await expect(c.call('close_opening',{id:c.engine.policy().opens[0].id,text:RECOVERY_REASON_TAG})).rejects.toThrow('未能请求正常关闭');
+  expect(c.engine.policy().opens[0].reasonStatus).toBe('pending');expect(c.engine.policy().openReasons).toHaveLength(0);
+ });
+ it('does not close a restarted process or an application from an older opening record',async()=>{
+  const {c,perform}=fixture();await c.call('set_management',{enabled:true});await c.tick(observation(0,null));await c.tick(observation(1));
+  const id=c.engine.policy().opens[0].id;
+  c.observation.processes=[{...process,startedAt:at}];
+  await expect(c.call('close_opening',{id,text:RECOVERY_REASON_TAG})).rejects.toThrow('进程已退出或变化');
+  await c.tick(observation(2,null));await c.tick(observation(3));
+  await expect(c.call('close_opening',{id,text:RECOVERY_REASON_TAG})).rejects.toThrow('这次打开已结束');expect(perform).not.toHaveBeenCalled();
  });
  it('pauses safely on native failure and preserves records',async()=>{
   const {c,disk}=fixture();await c.call('set_management',{enabled:true});await c.tick(observation(0,null));await c.tick(observation(1));c.fail('helper exited');

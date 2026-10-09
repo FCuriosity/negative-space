@@ -21,3 +21,6 @@ export function observeWebsite(observation:import('../../packages/core/src/web-q
 export function allowWebsite(id:string,now:number,mono:number,typed:string,reason:string) {engine.allowWebsite(id,now,mono,typed,reason);}
 
 export function finishCountUp(id:string,now:number){engine.finishCountUp(id,now);return state();}
+
+export function closeOpeningProcess(id:string,text:string,now:number,processes:import('../../packages/core/src/native-engine').NativeProcess[]) {return JSON.stringify(engine.closeOpeningProcess(id,text,now,processes));}
+export function recordClosedOpening(id:string,text:string,now:number) {engine.recordClosedOpening(id,text,now);return state();}

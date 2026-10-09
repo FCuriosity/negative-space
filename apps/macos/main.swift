@@ -251,6 +251,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
                     _ = try engine.call("prepareReturn",[identity]); app.activate(options:[.activateAllWindows])
                 }
                 replyHandler(result,nil)
+            case "close_opening":
+                guard let id=body["id"] as? String,let text=body["text"] as? String,text.utf8.count<10000 else {throw LocalError(message:"记录内容不正确")}
+                let processes=NSWorkspace.shared.runningApplications.compactMap { app -> [String:Any]? in
+                    guard let bundle=app.bundleIdentifier,managedBundles[bundle] != nil else {return nil}
+                    return processInfo(app)
+                }
+                guard let identity=try decode(engine.call("closeOpeningProcess",[id,text,milliseconds(),processes])) as? [String:Any],let app=matchingProcess(identity) else {throw LocalError(message:"原应用进程已退出或变化，请刷新后重试")}
+                guard app.terminate() else {throw LocalError(message:"未能请求正常关闭，请保存工作后手动关闭应用")}
+                let result=try engine.call("recordClosedOpening",[id,text,milliseconds()]);try persist();try publish();replyHandler(result,nil)
             case "finish_countup":
                 guard let id=body["id"] as? String else { throw LocalError(message:"专注记录不存在") }
                 let result=try engine.call("finishCountUp",[id,milliseconds()]); try persist(); try publish(); replyHandler(result,nil)

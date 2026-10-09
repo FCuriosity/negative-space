@@ -45,6 +45,12 @@ export class WindowsController {
         const id=text('id');e.saveOpenReason(id,text('text'),now,args.skip===true,args.intention as string|undefined);this.commit();
         const event=e.policy().opens.find(o=>o.id===id);if(args.returnToApp===true&&event)await this.activate(event.targetId);return state();
       }
+      case 'close_opening':{
+        const id=text('id'),reason=text('text',300);
+        const process=e.closeOpeningProcess(id,reason,now,this.observation.processes);
+        if(!await this.system.perform('quit',process))throw Error('未能请求正常关闭，请保存工作后手动关闭应用');
+        e.recordClosedOpening(id,reason,now);this.commit();return state();
+      }
       case 'allow_app':{
         const id=e.allow(text('noticeId'),now,this.observation.monotonicMs,text('typed'),text('reason',300),args.intention as string|undefined);
         this.commit();await this.activate(id);return this.status();

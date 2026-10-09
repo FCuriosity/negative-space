@@ -68,6 +68,12 @@ export default function App() {
     if(kind==='reflection') setReflectionId(null); else setReasonId(null);
     if(!skip) setToast(kind==='reflection'?'心得已保存到历历在目':'打开理由已保存到历历在目');
   };
+  const leaveOpening = async (id:string,text:string) => {
+    await saveQueue.current;
+    const next=parseState(JSON.parse(await callNative<string>('close_opening',{id,text})));
+    markNativeState(next);setState(next);setReasonId(null);
+    notify('理由已记录，已请求正常关闭应用；如有保存提示，请在应用中处理');
+  };
   const saveReasonTags = async (tags:string[]) => {
     await saveQueue.current;
     const candidate={...state,settings:{...state.settings,reasonTags:normalizeReasonTags(tags)}};
@@ -120,12 +126,12 @@ export default function App() {
       {page === 'journal' && <Journal state={state} now={now} onReflection={setReflectionId} onReason={setReasonId}/>}
       {page === 'tasks' && <Tasks state={state} change={change} today={today}/>}
       {page === 'settings' && <Settings state={state} change={change} notify={notify}/>}
-      <footer><span className="footer-wordmark">留白</span><span>时间由你安排</span><span>留白 / 0.12.1</span></footer>
+      <footer><span className="footer-wordmark">留白</span><span>时间由你安排</span><span>留白 / 0.12.2</span></footer>
     </div></main>
     {editing && <RuleEditor state={state} rule={editing} onClose={() => setEditing(null)} onDelete={() => { change(s => ({ ...s, rules: s.rules.filter(r => r.id !== editing.id) })); setEditing(null); }} onSave={rule => { change(s => ({ ...s, rules: s.rules.some(r => r.id === rule.id) ? s.rules.map(r => r.id === rule.id ? rule : r) : [...s.rules, rule], lists: s.lists.map(l => l.id === rule.listId ? { ...l, targetIds: [...new Set([...l.targetIds, rule.targetId])] } : l), audit: [...s.audit, { id: uid(), at: Date.now(), type: 'rule-updated', message: `更新规则：${rule.name}` }] })); setEditing(null); notify('规则已保存到本地'); }}/ >}
     {cancel && <CancelDialog session={cancel} now={now} close={() => setCancel(null)} confirm={() => { change(s => cancelFocus(s, cancel.id, Date.now(), true)); setCancel(null); notify('专注已提前结束，这次不计入奖励'); }}/ >}
     {reflectionSession && !nativeStatus?.notices.length && <ReflectionDialog key={reflectionSession.id} state={state} session={reflectionSession} onClose={()=>setReflectionId(null)} onSave={text=>saveJournal('reflection',reflectionSession.id,text)}/>}
-    {reasonEvent && !reflectionSession && !nativeStatus?.notices.length && <OpenReasonDialog key={reasonEvent.id} state={state} event={reasonEvent} prompt={reasonIsPrompt} onSaveTags={saveReasonTags} onClose={async()=>{if(reasonIsPrompt) await saveJournal('reason',reasonEvent.id,'',true,true);else setReasonId(null);}} onSave={(text,intention)=>saveJournal('reason',reasonEvent.id,text,false,reasonIsPrompt&&intention!=='accidental',intention)}/>}
+    {reasonEvent && !reflectionSession && !nativeStatus?.notices.length && <OpenReasonDialog key={reasonEvent.id} state={state} event={reasonEvent} prompt={reasonIsPrompt} onLeave={reasonIsPrompt&&nativeDesktop?text=>leaveOpening(reasonEvent.id,text):undefined} onSaveTags={saveReasonTags} onClose={async()=>{if(reasonIsPrompt) await saveJournal('reason',reasonEvent.id,'',true,true);else setReasonId(null);}} onSave={(text,intention)=>saveJournal('reason',reasonEvent.id,text,false,reasonIsPrompt&&intention!=='accidental',intention)}/>}
     {nativeStatus?.notices[0] && <NativeChallenge key={`${nativeStatus.notices[0].id}:${nativeStatus.notices[0].openEventId??''}`} notice={nativeStatus.notices[0]} state={state} onSaveTags={saveReasonTags} status={nativeStatus} onStatus={setNativeStatus} notify={notify}/>}
     {toast && <div className="toast" role="status"><Check size={17}/>{toast}</div>}
   </div>;
