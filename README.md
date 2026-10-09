@@ -6,7 +6,7 @@
 
 **真实录屏待补充。** 收到原始素材后，将在这里放入 30—60 秒视频，展示下面这一条完整使用路径。
 
-[产品展示页源码](docs/product/index.html) · [本地预览与录屏接入](docs/PRODUCT_PAGE.md)
+[查看产品展示页](https://fcuriosity.github.io/negative-space/product/) · [本地预览与录屏接入](docs/PRODUCT_PAGE.md)
 
 想完成一件事 → 顺手打开应用 → 收到提醒 → 写下「无意识，但改邪归正」，确认关闭 → 回到任务 → 完成专注，镜湖增加一颗星。
 

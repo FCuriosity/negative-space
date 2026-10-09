@@ -12,7 +12,7 @@ python3 -m http.server 4173 --bind 127.0.0.1 --directory docs/product
 
 打开 `http://127.0.0.1:4173`。也可直接在浏览器打开 `docs/product/index.html`。
 
-当前视频素材由产品作者提供，收到前展示清楚标识的待补充状态，没有虚构视频或不可播放的按钮。此目录尚未部署为公共网站。
+当前视频素材由产品作者提供，收到前展示清楚标识的待补充状态，没有虚构视频或不可播放的按钮。公开入口为 https://fcuriosity.github.io/negative-space/product/ 。
 
 ## 录制一条完整路径
 
@@ -51,4 +51,8 @@ python3 -m http.server 4173 --bind 127.0.0.1 --directory docs/product
 
 ## 托管
 
-`docs/product/` 可直接作为静态站点发布目录，无构建步骤。需要启用 GitHub Pages 时，将此目录上传为 Pages artifact，而不是把包含开发文档的整个 `docs/` 当作页面。正式地址确认可访问后，再加入 README。
+GitHub Pages 使用 `main` 分支的 `/docs` 目录发布；`docs/.nojekyll` 使文件按静态资源原样发布。`docs/index.html` 将网站根入口跳转到 `product/`，页面自身继续使用相对资源路径。
+
+公开地址：https://fcuriosity.github.io/negative-space/product/
+
+提交到主分支后，GitHub 的 `pages build and deployment` 自动发布更新。页面中下载按钮指向 Releases 列表，包含预发布安装包；不使用排除预发布版本的 `/releases/latest` 入口。
