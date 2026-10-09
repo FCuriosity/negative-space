@@ -35,6 +35,26 @@ describe('Windows native integration controller',()=>{
   c.observation={...observation(0,'com.microsoft.edgemac'),at:Date.now()-6000};
   expect(c.browser(request)).toMatchObject({inactive:true});expect(c.engine.policy().opens).toHaveLength(0);
  });
+ it('recognizes a running Chinese Bilibili process without waiting for registry refresh',async()=>{
+  const {c}=fixture();const bili={...process,bundleId:'com.bilibili.bilibiliPC',executable:'D:\\应用\\哔哩哔哩.exe'};
+  await c.call('set_management',{enabled:true});
+  await c.tick({...observation(0,null),processes:[bili]});
+  await c.tick({...observation(1,bili.bundleId),processes:[bili]});
+  await c.tick({...observation(2,bili.bundleId),processes:[bili]});
+  expect(c.status().installedApps.find(a=>a.bundleId===bili.bundleId)).toMatchObject({installed:true,running:true,processName:'哔哩哔哩.exe'});
+  expect(c.engine.policy().opens.filter(o=>o.targetId==='bilibili-app')).toHaveLength(1);
+  expect(c.engine.policy().usage.reduce((n,u)=>n+u.end-u.start,0)).toBe(1000);
+  c.installed=[{name:'哔哩哔哩 App',bundleId:bili.bundleId,installed:true}];
+  await c.tick({...observation(3,null),processes:[]});
+  expect(c.status().installedApps.find(a=>a.bundleId===bili.bundleId)).toMatchObject({installed:true,running:false});
+ });
+ it('reports a rejected close instead of showing success or disabling management',async()=>{
+  const {c,perform}=fixture();c.engine.policy().rules.find(r=>r.targetId==='wechat')!.dailyMinutes=0;
+  await c.call('set_management',{enabled:true});await c.tick(observation(0));perform.mockResolvedValue(false);
+  await expect(c.call('quit_now',{noticeId:c.engine.data.notices[0].id})).rejects.toThrow('操作未完成');
+  expect(c.status().enabled).toBe(true);
+  await c.tick(observation(60));expect(c.status().lastError).toContain('未能请求应用正常关闭');
+ });
  it('pauses safely on native failure and preserves records',async()=>{
   const {c,disk}=fixture();await c.call('set_management',{enabled:true});await c.tick(observation(0,null));await c.tick(observation(1));c.fail('helper exited');
   expect(c.status()).toMatchObject({enabled:false,lastError:'helper exited'});expect(disk()).toContain('wechat');

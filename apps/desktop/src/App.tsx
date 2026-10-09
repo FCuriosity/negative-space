@@ -120,7 +120,7 @@ export default function App() {
       {page === 'journal' && <Journal state={state} now={now} onReflection={setReflectionId} onReason={setReasonId}/>}
       {page === 'tasks' && <Tasks state={state} change={change} today={today}/>}
       {page === 'settings' && <Settings state={state} change={change} notify={notify}/>}
-      <footer><span className="footer-wordmark">留白</span><span>时间由你安排</span><span>留白 / 0.12.0</span></footer>
+      <footer><span className="footer-wordmark">留白</span><span>时间由你安排</span><span>留白 / 0.12.1</span></footer>
     </div></main>
     {editing && <RuleEditor state={state} rule={editing} onClose={() => setEditing(null)} onDelete={() => { change(s => ({ ...s, rules: s.rules.filter(r => r.id !== editing.id) })); setEditing(null); }} onSave={rule => { change(s => ({ ...s, rules: s.rules.some(r => r.id === rule.id) ? s.rules.map(r => r.id === rule.id ? rule : r) : [...s.rules, rule], lists: s.lists.map(l => l.id === rule.listId ? { ...l, targetIds: [...new Set([...l.targetIds, rule.targetId])] } : l), audit: [...s.audit, { id: uid(), at: Date.now(), type: 'rule-updated', message: `更新规则：${rule.name}` }] })); setEditing(null); notify('规则已保存到本地'); }}/ >}
     {cancel && <CancelDialog session={cancel} now={now} close={() => setCancel(null)} confirm={() => { change(s => cancelFocus(s, cancel.id, Date.now(), true)); setCancel(null); notify('专注已提前结束，这次不计入奖励'); }}/ >}

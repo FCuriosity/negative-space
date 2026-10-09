@@ -20,3 +20,6 @@ coverage/
 apps/windows/build/
 apps/windows/native/bin/
 apps/windows/native/obj/
+
+apps/windows/fixtures/bin/
+apps/windows/fixtures/obj/

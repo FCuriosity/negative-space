@@ -8,7 +8,7 @@ using Microsoft.Win32;
 internal static class Program {
   static readonly JsonSerializerOptions Json=new(){PropertyNamingPolicy=JsonNamingPolicy.CamelCase};
   static readonly object OutputLock=new();
-  static readonly Dictionary<string,string> Ids=new(StringComparer.OrdinalIgnoreCase){["bilibili"]="com.bilibili.bilibiliPC",["xiaohongshu"]="com.xingin.discover",["rednote"]="com.xingin.discover",["WeChat"]="com.tencent.xinWeChat",["Weixin"]="com.tencent.xinWeChat",["steam"]="com.valvesoftware.steam",["msedge"]="com.microsoft.edgemac",["chrome"]="com.google.Chrome",["Liubai"]="local.liubai.native"};
+  static readonly Dictionary<string,string> Ids=new(StringComparer.OrdinalIgnoreCase){["bilibili"]="com.bilibili.bilibiliPC",["哔哩哔哩"]="com.bilibili.bilibiliPC",["xiaohongshu"]="com.xingin.discover",["rednote"]="com.xingin.discover",["WeChat"]="com.tencent.xinWeChat",["Weixin"]="com.tencent.xinWeChat",["steam"]="com.valvesoftware.steam",["msedge"]="com.microsoft.edgemac",["chrome"]="com.google.Chrome",["Liubai"]="local.liubai.native"};
   static readonly Dictionary<string,string> Names=new(){["com.bilibili.bilibiliPC"]="哔哩哔哩 App",["com.xingin.discover"]="小红书 App",["com.tencent.xinWeChat"]="微信",["com.valvesoftware.steam"]="Steam"};
   record Identity(int Pid,double StartedAt,string Executable,string BundleId,bool Protected);
   [StructLayout(LayoutKind.Sequential)] struct LastInput {public uint Size;public uint Tick;}
@@ -60,10 +60,35 @@ internal static class Program {
       var packet=JsonSerializer.SerializeToUtf8Bytes(new{token=root.GetProperty("token").GetString(),request=JsonSerializer.Deserialize<JsonElement>(request)});WriteFrame(pipe,packet);
       using var timeout=new CancellationTokenSource(5000);var header=new byte[4];pipe.ReadExactlyAsync(header,timeout.Token).AsTask().GetAwaiter().GetResult();var size=System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(header);if(size<1||size>65536)throw new Exception();var reply=new byte[size];pipe.ReadExactlyAsync(reply,timeout.Token).AsTask().GetAwaiter().GetResult();WriteFrame(output,reply);
     }catch{WriteFrame(output,JsonSerializer.SerializeToUtf8Bytes(new{error="请先打开留白，并在连接管理中重新准备本地连接"}));}}}
+  // Test only the executable explicitly created by CI, never an existing user process.
+  static void IntegrationTest(string fixture){
+    if(Path.GetFileName(fixture)!="哔哩哔哩.exe")throw new Exception("Expected Chinese-named test fixture");
+    foreach(var refuse in new[]{false,true}){
+      var marker=Path.Combine(Path.GetTempPath(),"liubai-close-"+Guid.NewGuid());
+      var start=new ProcessStartInfo(Path.GetFullPath(fixture)){UseShellExecute=false};
+      start.ArgumentList.Add(refuse?"refuse":"close");start.ArgumentList.Add(marker);
+      using var p=Process.Start(start)??throw new Exception("Fixture failed to start");
+      try{
+        var ready=SpinWait.SpinUntil(()=>{p.Refresh();return p.MainWindowHandle!=IntPtr.Zero;},10000);
+        if(!ready)throw new Exception("Fixture window missing");
+        var identity=Inspect(p)??throw new Exception("Chinese executable was not identified");
+        if(identity.BundleId!="com.bilibili.bilibiliPC"||identity.Protected)throw new Exception("Wrong application mapping");
+        using var snapshot=JsonDocument.Parse(JsonSerializer.Serialize(Observe(),Json));
+        if(!snapshot.RootElement.GetProperty("processes").EnumerateArray().Any(x=>x.GetProperty("pid").GetInt32()==p.Id))throw new Exception("Visible application absent from observation");
+        if(Act("quit",identity with {StartedAt=identity.StartedAt+1}))throw new Exception("Accepted stale process identity");
+        if(!Act("quit",identity))throw new Exception("Normal close was not requested");
+        if(refuse){if(!SpinWait.SpinUntil(()=>File.Exists(marker),5000)||p.HasExited)throw new Exception("Save/cancel was not respected");}
+        else if(!p.WaitForExit(5000))throw new Exception("Normal close failed");
+      }finally{if(!p.HasExited){p.Kill();p.WaitForExit(5000);}File.Delete(marker);}
+    }
+    Print(new{passed=true,test="Chinese executable identification, observation, safe close, cancel and PID identity"});
+  }
   static int Main(string[] args){
     if(args.Contains("--browser-host") || args.Any(a=>a.StartsWith("chrome-extension://",StringComparison.Ordinal))){BrowserHost();return 0;}
+    if(args.Length==2&&args[0]=="--integration-test"){IntegrationTest(args[1]);return 0;}
     if(args.Contains("--self-test")){var payload=Encoding.UTF8.GetBytes("中文心跳");using var stream=new MemoryStream();WriteFrame(stream,payload);stream.Position=0;if(!ReadFrame(stream).SequenceEqual(payload))return 1;if(Act("quit",new Identity(Environment.ProcessId,0,"invalid","com.tencent.xinWeChat",false)))return 2;Print(new{passed=true,observation=Observe()});return 0;}
     Console.OutputEncoding=new UTF8Encoding(false);
+    Console.InputEncoding=new UTF8Encoding(false);
     using var stop=new CancellationTokenSource();
     var sampling=Task.Run(async()=>{while(!stop.IsCancellationRequested){try{Print(new{type="observation",data=Observe()});}catch(Exception e){Print(new{type="error",error=e.Message});}await Task.Delay(1000,stop.Token).ContinueWith(_=>{});}});
     string? line;while((line=Console.ReadLine())!=null){string? id=null;try{using var doc=JsonDocument.Parse(line);var r=doc.RootElement;id=r.GetProperty("id").GetString();var kind=r.GetProperty("kind").GetString();object result;

@@ -54,6 +54,13 @@ jobs:
       - run: pnpm test
       - run: pnpm windows:build
       - run: ./apps/windows/build/resources/native/Liubai.Native.exe --self-test
+      - name: Verify Chinese app detection and safe closing
+        shell: pwsh
+        run: |
+          dotnet publish apps/windows/fixtures/Fixture.csproj -c Release -r win-x64 --self-contained true -o work/windows-fixture
+          if ($LASTEXITCODE -ne 0) { throw "Fixture build failed" }
+          ./apps/windows/build/resources/native/Liubai.Native.exe --integration-test "$pwd/work/windows-fixture/哔哩哔哩.exe"
+          if ($LASTEXITCODE -ne 0) { throw "Chinese process integration failed" }
       - run: npm install --prefix apps/windows --no-audit --no-fund
       - run: node apps/windows/node_modules/electron/install.js
       - name: Windows UI and native smoke test

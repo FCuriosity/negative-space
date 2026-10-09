@@ -18,11 +18,11 @@ export class WindowsController {
   async tick(o:NativeObservation){
     this.observation=o;
     const commands=this.engine.tick(o);this.commit();
-    for(const c of commands)if(c.kind==='show')this.system.show();else await this.system.perform('quit',c.process);
+    for(const c of commands)if(c.kind==='show')this.system.show();else if(!await this.system.perform('quit',c.process))this.lastError='未能请求应用正常关闭，请手动关闭；如果应用以管理员身份运行，请改为普通方式运行';
   }
   status(){
     const connectedBrowsers=Object.keys(this.seen).filter(b=>this.mono()-this.seen[b]<90000);
-    return {enabled:this.engine.data.enabled,notices:this.engine.data.notices,installedApps:this.installed,platform:'Windows',lastError:this.lastError,frontApp:appNames[this.observation.frontBundleId??'']??'其他应用',idleSeconds:this.observation.idleSeconds,sampledAt:Date.now(),monotonicMs:this.observation.monotonicMs,browserConnected:!!connectedBrowsers.length,connectedBrowsers,browserLastSeen:this.lastSeen,menuBar:this.engine.menuBar(Date.now())};
+    return {enabled:this.engine.data.enabled,notices:this.engine.data.notices,installedApps:Object.entries(appNames).map(([bundleId,name])=>{const saved=this.installed.find(a=>a.bundleId===bundleId),running=this.observation.processes.find(p=>p.bundleId===bundleId);return {name,bundleId,installed:!!running||!!saved?.installed,path:running?.executable??saved?.path,running:!!running,processName:running?.executable.split(/[\\/]/).pop()};}),platform:'Windows',lastError:this.lastError,frontApp:appNames[this.observation.frontBundleId??'']??'其他应用',idleSeconds:this.observation.idleSeconds,sampledAt:Date.now(),monotonicMs:this.observation.monotonicMs,browserConnected:!!connectedBrowsers.length,connectedBrowsers,browserLastSeen:this.lastSeen,menuBar:this.engine.menuBar(Date.now())};
   }
   private async activate(targetId:string){
     const target=this.engine.policy().targets.find(t=>t.id===targetId);
@@ -55,7 +55,9 @@ export class WindowsController {
         if(!p)throw Error('进程已变化，请刷新');
         if(method==='force_quit'&&!mayForceQuit(notice.quit,p,args.confirmed===true))throw Error('未获准强制退出');
         if(method==='return_to_app')e.prepareReturn(p);
-        return {requested:await this.system.perform(method==='force_quit'?'force':method==='quit_now'?'quit':'activate',p)};
+        const requested=await this.system.perform(method==='force_quit'?'force':method==='quit_now'?'quit':'activate',p);
+        if(!requested)throw Error('操作未完成，请手动处理；如果应用以管理员身份运行，请改为普通方式运行');
+        return {requested};
       }
       default:throw Error('不支持的操作');
     }

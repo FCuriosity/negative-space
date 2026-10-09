@@ -1,7 +1,7 @@
 import type { AppState } from '../../../packages/core/src';
 import type { NativeNotice } from '../../../packages/core/src/native-engine';
 import { parseState } from '../../../packages/core/src/state';
-export interface NativeStatus { enabled: boolean; browserConnected?:boolean; browserLastSeen?:number; connectedBrowsers?:('chrome'|'edge')[]; notices: NativeNotice[]; installedApps: { name: string; bundleId: string; path?: string; installed: boolean }[]; platform: string; lastError: string; frontApp: string; idleSeconds: number; sampledAt: number; monotonicMs: number }
+export interface NativeStatus { enabled: boolean; browserConnected?:boolean; browserLastSeen?:number; connectedBrowsers?:('chrome'|'edge')[]; notices: NativeNotice[]; installedApps: { name: string; bundleId: string; path?: string; installed: boolean; running?: boolean; processName?: string }[]; platform: string; lastError: string; frontApp: string; idleSeconds: number; sampledAt: number; monotonicMs: number }
 declare global { interface Window { liubaiNative?:{platform:'Windows';call<T>(method:string,args:Record<string,unknown>):Promise<T>;subscribe(callback:(name:string,data:unknown)=>void):()=>void}; webkit?: { messageHandlers?: { liubai?: { postMessage(body: unknown): Promise<unknown> } } } } }
 export const nativeMac=!!window.webkit?.messageHandlers?.liubai;
 export const nativeWindows=!!window.liubaiNative;
