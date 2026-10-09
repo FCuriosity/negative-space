@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "留白",
+  "version": "0.1.0",
+  "identifier": "local.liubai.desktop",
+  "build": { "beforeDevCommand": "pnpm --dir ../.. dev", "beforeBuildCommand": "pnpm --dir ../.. build", "devUrl": "http://localhost:1420", "frontendDist": "../../../dist/desktop" },
+  "app": { "windows": [{ "label": "main", "title": "留白 · 把时间留给重要的事", "width": 1280, "height": 900, "minWidth": 800, "minHeight": 650 }], "security": { "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src ipc: http://ipc.localhost" } },
+  "bundle": { "active": false, "icon": ["../public/brand/32x32.png", "../public/brand/128x128.png", "../public/brand/256x256.png", "../public/brand/Liubai.icns"] }
+}

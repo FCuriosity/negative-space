@@ -1,0 +1,8 @@
+.mirror-character-layer { transition:opacity 900ms ease-out; }
+.mirror-character-setting { max-width:320px; margin:18px 0; }
+.mirror-character-water-image { transition:opacity 1000ms ease-out,filter 1000ms ease-out; }
+.mirror-character[data-reduced-motion] .mirror-character-layer,
+.mirror-character-reflection[data-reduced-motion] .mirror-character-water-image { transition:none; }
+@media(prefers-reduced-motion:reduce) {
+  .mirror-character-layer,.mirror-character-water-image { transition:none; }
+}

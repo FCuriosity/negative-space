@@ -1,0 +1,39 @@
+{
+  "name": "liubai",
+  "version": "0.11.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "icons:build": "node scripts/build-icons.mjs",
+    "dev": "vite --config apps/desktop/vite.config.ts --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build --config apps/desktop/vite.config.ts && node scripts/build-extension.mjs",
+    "test": "vitest run",
+    "desktop": "cd apps/desktop && tauri dev",
+    "desktop:build": "cd apps/desktop && tauri build",
+    "extension:build": "node scripts/build-extension.mjs",
+    "check": "tsc --noEmit",
+    "macos:build": "pnpm build && node scripts/build-macos.mjs",
+    "macos": "open dist/留白.app",
+    "test:macos": "node scripts/test-macos.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/chrome": "^0.0.287",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
+  }
+}

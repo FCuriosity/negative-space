@@ -1,0 +1,51 @@
+{
+  "name": "Mirror Lake / 镜湖 — Character set",
+  "version": "1.0.0",
+  "units": "normalized to full transparent PNG canvas, not visible bounding box",
+  "canvas": {
+    "width": 1024,
+    "height": 1536,
+    "format": "PNG",
+    "mode": "RGBA",
+    "transparent": true
+  },
+  "registered": true,
+  "master": "references/master_bright_original.png",
+  "visible_bounds_alpha_gt_0": {
+    "x": 259,
+    "y": 31,
+    "width": 733,
+    "height": 1403
+  },
+  "ankle_waterline_anchor": {
+    "x": 0.4668,
+    "y": 0.931
+  },
+  "assets": {
+    "dark": "assets/mirror-character-dark.png",
+    "mid": "assets/mirror-character-mid.png",
+    "bright": "assets/mirror-character-bright.png",
+    "mask": "assets/mirror-character-mask.png"
+  },
+  "relationship": "All state PNGs share identical alpha and pixel registration; states are derived from one exact illustration for zero shape jump during crossfade.",
+  "recommended_stage": {
+    "standing_character_height_ratio": 0.28,
+    "scene_center_x_ratio": 0.5,
+    "scene_waterline_y_ratio": 0.66
+  },
+  "light_contract": {
+    "illumination": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "dark_mid_transition": [
+      0.08,
+      0.55
+    ],
+    "mid_bright_transition": [
+      0.55,
+      0.98
+    ]
+  },
+  "source_license_note": "Art generated for this project. Verify applicable product terms prior to distribution."
+}

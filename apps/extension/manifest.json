@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "留白 · 少一点推荐",
+  "version": "0.2.0",
+  "description": "本地隐藏推荐流与短视频入口，保留你主动选择的内容",
+  "permissions": [
+    "storage",
+    "nativeMessaging",
+    "tabs"
+  ],
+  "action": {
+    "default_title": "留白",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16x16.png",
+      "32": "icons/32x32.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.bilibili.com/*",
+        "*://*.youtube.com/*",
+        "*://*.weibo.com/*",
+        "*://*.zhihu.com/*",
+        "*://*.douyin.com/*",
+        "*://*.xiaohongshu.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu2O7DgpSuakoElrLBfHnI7VxUb/wK2cLVkNyrONduIpNqyh8aPHty/4K2PiEN6KL+ps0y2669MieJhUTwHN0X0LrByUsGNds+0AZVX7p6qbHLZP6gOAn+TBw+ykgIvjX+jbLBurJTqpqjq4hc+RiY3xxI0TF3bDdx/XsI+/hmgQVqWRrQzYv/EKl0riGXq9kekx5OWV59+zNCNkPvKpAPIS9W6J+mrrVHslwdeapuv2uMiEWalfFNRXhIizgZLDLL/GmHefdGI2aLTHQ5/CmGaxQQzq/qPLVK+IitN/TfRSUMGt5xPiCC+yaJZ1DDx57mXiaXnqu0UAa6hPHV93yHwIDAQAB",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/16x16.png",
+    "32": "icons/32x32.png",
+    "48": "icons/48x48.png",
+    "128": "icons/128x128.png"
+  }
+}

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1024" height="1024"
+     viewBox="0 0 1024 1024"
+     role="img" aria-labelledby="liubai-icon-title">
+  <title id="liubai-icon-title">留白 App 图标 · 第三版</title>
+
+  <!-- 深绿色圆角底板，圆角外侧透明 -->
+  <rect width="1024" height="1024"
+        rx="210" fill="#1B5143" />
+
+  <!-- 米白色单层窗框，右上开口，整体略偏上 -->
+  <path fill="#F7F2E7"
+        d="M 644 204
+           H 220
+           V 780
+           H 804
+           V 338
+           H 736
+           V 712
+           H 288
+           V 272
+           H 644
+           Z" />
+</svg>
