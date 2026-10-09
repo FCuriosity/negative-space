@@ -1,0 +1,95 @@
+name: Build desktop releases
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/release.yml'
+      - 'apps/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vitest.config.ts'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: desktop-release
+  cancel-in-progress: true
+jobs:
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm macos:package
+      - run: ./dist/留白.app/Contents/MacOS/Liubai --self-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.os }}
+          path: dist/release/*.dmg
+          if-no-files-found: error
+  windows:
+    timeout-minutes: 30
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm windows:build
+      - run: ./apps/windows/build/resources/native/Liubai.Native.exe --self-test
+      - run: npm install --prefix apps/windows --no-audit --no-fund
+      - name: Windows UI and native smoke test
+        shell: pwsh
+        run: |
+          $p = Start-Process apps/windows/node_modules/electron/dist/electron.exe -ArgumentList @('apps/windows', '--smoke-test') -PassThru -RedirectStandardOutput smoke-out.txt -RedirectStandardError smoke-err.txt
+          if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "Windows smoke test timed out" }
+          Get-Content smoke-out.txt
+          Get-Content smoke-err.txt
+          if ($p.ExitCode -ne 0) { throw "Windows smoke test failed: $($p.ExitCode)" }
+      - run: ./apps/windows/node_modules/.bin/electron-builder --projectDir apps/windows --win nsis --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dist/release/*.exe
+          if-no-files-found: error
+  publish:
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - name: Publish tested installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v${version}-beta.${GITHUB_RUN_NUMBER}"
+          cd installers
+          sha256sum *.dmg *.exe > SHA256SUMS.txt
+          cd ..
+          gh release create "$tag" installers/* --target "$GITHUB_SHA" --title "留白 ${version} 测试版" --prerelease --notes-file docs/RELEASE.md

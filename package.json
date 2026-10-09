@@ -1,6 +1,6 @@
 {
   "name": "liubai",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.19.0",
@@ -15,7 +15,9 @@
     "check": "tsc --noEmit",
     "macos:build": "pnpm build && node scripts/build-macos.mjs",
     "macos": "open dist/留白.app",
-    "test:macos": "node scripts/test-macos.mjs"
+    "test:macos": "node scripts/test-macos.mjs",
+    "windows:build": "pnpm build && node scripts/build-windows.mjs",
+    "macos:package": "pnpm macos:build && node scripts/package-macos.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",

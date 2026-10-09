@@ -261,7 +261,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
                 guard let browser=body["browser"] as? String else{throw LocalError(message:"请选择浏览器")}
                 replyHandler(try installBrowserHost(browser:browser),nil)
             case "open_extension_folder":
-                NSWorkspace.shared.open(Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("extension"));replyHandler("ok",nil)
+                NSWorkspace.shared.open(resource.appendingPathComponent("extension"));replyHandler("ok",nil)
             case "native_status": replyHandler(try status(),nil)
             case "set_management":
                 guard let value=body["enabled"] as? Bool else { throw LocalError(message:"开关参数不正确") }

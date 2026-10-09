@@ -3,7 +3,7 @@ import {hostMatches} from '../../../packages/core/src/browser';
 const browser=navigator.userAgent.includes('Edg/')?'edge':'chrome';
 const domains=['bilibili.com','youtube.com','weibo.com','zhihu.com','douyin.com','xiaohongshu.com'];
 let running=false;
-let latest:Record<string,unknown>={error:'尚未连接留白 Mac 应用'};
+let latest:Record<string,unknown>={error:'尚未连接留白桌面应用'};
 let currentTab=-1;
 let currentHost='';
 async function report(operation='observe',extra:Record<string,unknown>={}) {

@@ -1,8 +1,9 @@
 import { build } from 'esbuild';
-import { mkdir,writeFile,rm,copyFile,cp } from 'node:fs/promises';
+import { mkdir,writeFile,rm,copyFile,cp,readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 if(process.platform!=='darwin') throw new Error('macOS 原生构建需要在 Mac 上运行');
+const version=JSON.parse(await readFile('package.json','utf8')).version;
 const bundle=resolve('dist/留白.app/Contents');
 await mkdir(`${bundle}/MacOS`,{recursive:true});
 await mkdir(`${bundle}/Resources`,{recursive:true});
@@ -13,10 +14,11 @@ await writeFile(`${bundle}/Resources/web/index.html`,'<!doctype html><html lang=
 await cp('apps/desktop/public/brand',`${bundle}/Resources/web/brand`,{recursive:true});
 await copyFile('apps/desktop/public/brand/Liubai.icns',`${bundle}/Resources/Liubai.icns`);
 await build({entryPoints:['apps/macos/runtime.ts'],bundle:true,format:'iife',globalName:'LiubaiRuntime',platform:'neutral',target:'safari16',outfile:`${bundle}/Resources/runtime.js`});
-await writeFile(`${bundle}/Info.plist`,`<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleExecutable</key><string>Liubai</string><key>CFBundleIdentifier</key><string>local.liubai.native</string><key>CFBundleName</key><string>留白</string><key>CFBundleDisplayName</key><string>留白</string><key>CFBundleIconFile</key><string>Liubai.icns</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleShortVersionString</key><string>0.11.0</string><key>CFBundleVersion</key><string>14</string><key>LSMinimumSystemVersion</key><string>13.0</string><key>NSHighResolutionCapable</key><true/></dict></plist>`);
+await writeFile(`${bundle}/Info.plist`,`<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleExecutable</key><string>Liubai</string><key>CFBundleIdentifier</key><string>local.liubai.native</string><key>CFBundleName</key><string>留白</string><key>CFBundleDisplayName</key><string>留白</string><key>CFBundleIconFile</key><string>Liubai.icns</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleShortVersionString</key><string>${version}</string><key>CFBundleVersion</key><string>15</string><key>LSMinimumSystemVersion</key><string>13.0</string><key>NSHighResolutionCapable</key><true/></dict></plist>`);
 await copyFile('apps/extension/extension-id.txt',`${bundle}/Resources/extension-id.txt`);
-const quoteShell=s=>"'"+s.replaceAll("'","'\\''")+"'";
-await writeFile(`${bundle}/Resources/browser-host.sh`,`#!/bin/sh\nexec ${quoteShell(`${bundle}/MacOS/Liubai`)} --browser-host "$@"\n`,{mode:0o755});
+
+await cp('dist/extension',`${bundle}/Resources/extension`,{recursive:true});
+await writeFile(`${bundle}/Resources/browser-host.sh`,'#!/bin/sh\nSCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"\nexec "$SCRIPT_DIR/../MacOS/Liubai" --browser-host "$@"\n',{mode:0o755});
 const cache=resolve('work/swift-browser-cache');
 await mkdir(cache,{recursive:true});
 const result=spawnSync('swiftc',['-swift-version','5','-module-cache-path',cache,'-O','apps/macos/main.swift','apps/macos/System.swift','apps/macos/BrowserBridge.swift','-o',`${bundle}/MacOS/Liubai`],{stdio:'inherit'});

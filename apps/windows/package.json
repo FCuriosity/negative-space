@@ -1,0 +1,20 @@
+{
+  "name": "liubai-windows",
+  "version": "0.12.0",
+  "private": true,
+  "description": "留白 · 本地个人自律工具",
+  "author": "FCuriosity",
+  "main": "build/main.mjs",
+  "devDependencies": { "electron": "44.7.0", "electron-builder": "26.17.0" },
+  "build": {
+    "appId": "local.liubai.windows",
+    "productName": "留白",
+    "executableName": "Liubai",
+    "directories": {"output": "../../dist/release"},
+    "files": ["build/main.mjs", "build/preload.cjs", "build/web/**/*", "package.json"],
+    "extraResources": [{"from":"build/resources", "to":"."}],
+    "win": {"target":[{"target":"nsis","arch":["x64"]}], "icon":"build/resources/brand/Liubai.ico", "artifactName":"Liubai-${version}-windows-${arch}-setup.${ext}"},
+    "nsis": {"oneClick":false,"perMachine":false,"allowToChangeInstallationDirectory":true,"createDesktopShortcut":true,"deleteAppDataOnUninstall":false},
+    "publish": null
+  }
+}
