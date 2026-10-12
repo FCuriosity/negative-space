@@ -90,7 +90,7 @@ public final class FocusService extends Service {
     if(!java.util.Arrays.asList("load","allow","leave","save_tags").contains(method))throw new Exception("不支持的提醒操作");
     EngineHost.get(FocusService.this).call("load".equals(method)?"load_notice":method,args,result->{
      if(source!=overlayWeb)return;source.evaluateJavascript("window.nativeReply("+id+","+result+")",null);
-     if(!result.has("error")&&("allow".equals(method)||"leave".equals(method)){
+     if(!result.has("error")&&("allow".equals(method)||"leave".equals(method))){
       if("leave".equals(method)){suppressedPackage=foreground;startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}
       hideOverlay();
      }
