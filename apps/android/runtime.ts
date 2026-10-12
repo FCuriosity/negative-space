@@ -6,7 +6,7 @@ import {isMirrorOpening} from '../../packages/core/src/mirror-lake';
 import type {AppState} from '../../packages/core/src/model';
 export const androidApps=[{id:'wechat',name:'微信',pkg:'com.tencent.mm',color:'#65a66a',initials:'微'},{id:'bilibili-app',name:'哔哩哔哩',pkg:'tv.danmaku.bili',color:'#e981a4',initials:'哔'},{id:'xiaohongshu-app',name:'小红书',pkg:'com.xingin.xhs',color:'#da716c',initials:'红'},{id:'douyin-app',name:'抖音',pkg:'com.ss.android.ugc.aweme',color:'#657891',initials:'抖'}];
 export function androidPolicy(s:AppState):AppState {
- return {...s,targets:androidApps.map(a=>({id:a.id,name:a.name,kind:'app',color:a.color,initials:a.initials,identities:[a.pkg]})),rules:s.rules.filter(r=>androidApps.some(a=>a.id===r.targetId)).map(r=>({...r,mode:'gentle',forceQuitOptIn:false})),lists:[{id:'entertainment',name:'娱乐与信息流',targetIds:['bilibili-app','xiaohongshu-app','douyin-app']},{id:'social',name:'社交通知',targetIds:['wechat']}],settings:{...s.settings,rewardTargetId:'bilibili-app'}};
+ return {...s,targets:androidApps.map(a=>({id:a.id,name:a.name,kind:'app',color:a.color,initials:a.initials,identities:[a.pkg]})),rules:s.rules.filter(r=>androidApps.some(a=>a.id===r.targetId)).map(r=>({...r,mode:'gentle',forceQuitOptIn:false})),lists:[{id:'entertainment',name:'娱乐与信息流',targetIds:['bilibili-app','xiaohongshu-app','douyin-app']},{id:'social',name:'社交通知',targetIds:['wechat']},...androidApps.map(a=>({id:`focus-app:${a.id}`,name:a.name,targetIds:[a.id]}))],settings:{...s.settings,rewardTargetId:'bilibili-app'}};
 }
 export class AndroidRuntime {
  engine:NativeEngine;
@@ -23,7 +23,7 @@ export class AndroidRuntime {
   for(const session of this.state().sessions.filter(s=>s.status==='active'))for(const list of this.state().lists.filter(l=>session.listIds.includes(l.id)))for(const id of list.targetIds)tracking.add(id);
   const app=androidApps.find(a=>a.pkg===pkg&&tracking.has(a.id));
   const processes=androidApps.map((a,i)=>({pid:i+1,startedAt:1,executable:a.pkg,protected:false,bundleId:a.pkg}));
-  const commands=this.engine.tick({at,monotonicMs:mono,idleSeconds:locked?9999:0,locked,frontBundleId:pkg==='cn.liubai.app'||pkg==='cn.liubai.app.preview'?'local.liubai.native':app?.pkg??null,processes});
+  const commands=this.engine.tick({at,monotonicMs:mono,idleSeconds:locked?9999:0,locked,frontBundleId:pkg==='cn.liubai.app'||pkg==='cn.liubai.app.preview'||pkg==='cn.liubai.app.preview2'?'local.liubai.native':app?.pkg??null,processes});
   if(commands.some(c=>c.kind==='show'&&!this.engine.data.notices.some(n=>n.id===c.noticeId)))this.engine.clearReturnInterruption();
   // Android cannot terminate other apps: commands are deliberately not executed.
   return {state:this.state(),enabled:this.engine.data.enabled,notice:this.engine.data.notices[0]??null,overlayNotice:locked?null:this.engine.data.notices.find(n=>n.targetId===app?.id)??null};
@@ -37,7 +37,12 @@ export class AndroidRuntime {
    case 'management':if(typeof args.enabled!=='boolean')throw Error('开关参数不正确');e.setEnabled(args.enabled);break;
    case 'focus_start':{
     const minutes=Number(args.minutes);if(!Number.isInteger(minutes)||minutes<1||minutes>720)throw Error('请输入 1–720 分钟');
-    e.data.app=startFocus(e.policy(),{id:`focus:${now}`,startedAt:now,endsAt:args.countUp?now:now+minutes*60000,durationMinutes:args.countUp?0:minutes,timerMode:args.countUp?'countup':'countdown',projectId:'personal',listIds:['entertainment'],mode:'gentle',status:'active'});break;
+    const targetIds=args.targetIds??androidApps.map(a=>a.id);
+    if(!Array.isArray(targetIds)||targetIds.some(id=>!androidApps.some(a=>a.id===id)))throw Error('请选择支持的应用');
+    if(args.manage===true&&!targetIds.length)throw Error('请至少选择一个提醒应用');
+    const previous=e.data.app;
+    e.data.app=startFocus(e.policy(),{id:`focus:${now}`,startedAt:now,endsAt:args.countUp?now:now+minutes*60000,durationMinutes:args.countUp?0:minutes,timerMode:args.countUp?'countup':'countdown',projectId:'personal',listIds:[...new Set<string>(targetIds)].map(id=>`focus-app:${id}`),mode:'gentle',status:'active'});
+    try{if(args.manage===true&&!e.data.enabled)e.setEnabled(true);}catch(error){e.data.app=previous;throw error;}break;
    }
    case 'timezone':{const timezone=String(args.timezone);new Intl.DateTimeFormat('zh-CN',{timeZone:timezone});e.data.app.settings.timezone=timezone;break;}
    case 'focus_finish':e.finishCountUp(String(args.id),now);break;

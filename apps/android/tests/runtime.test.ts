@@ -9,4 +9,32 @@ describe('Android native rules adapter',()=>{
  it('keeps the reminder available when entering Liubai, records accidental opening and grants five minutes',()=>{const r=runtime();const s=r.state();r.call('save',{state:{...s,rules:s.rules.map(x=>({...x,dailyOpens:0}))}},start,0);const result=r.tick('com.tencent.mm',start+1000,1000,false);expect(result.overlayNotice).not.toBeNull();const notice=result.notice!;expect(r.tick('cn.liubai.app.preview',start+2000,2000,false).overlayNotice).toBeNull();expect(r.engine.data.notices).toHaveLength(1);r.call('allow',{id:notice.id,reason:'无意识打开',intention:'accidental'},start+3000,3000);expect(r.state().opens[0].intention).toBe('accidental');r.tick('com.tencent.mm',start+4000,4000,false);expect(r.state().opens).toHaveLength(1);expect(r.engine.data.notices).toHaveLength(0);});
  it('requires a reason outside allowed windows and respects weekday overrides',()=>{const r=runtime();const s=r.state();r.call('save',{state:{...s,rules:s.rules.map(x=>({...x,allowedWindows:[{days:[1],start:1200,end:1380}],weekdays:{1:{dailyMinutes:20,dailyOpens:3}}}))}},start,0);const notice=r.tick('com.tencent.mm',start+1000,1000,false).notice!;expect(notice.decision.reason).toBe('outside-window');expect(()=>r.call('allow',{id:notice.id,reason:''},start+2000,2000)).toThrow();});
  it('settles focus exactly once, supports count-up and keeps original Android package identities',()=>{const r=runtime();r.call('focus_start',{minutes:1},start,0);r.tick(null,start+61000,61000,false);r.tick(null,start+62000,62000,false);expect(r.state().sessions.filter(s=>s.status==='completed')).toHaveLength(1);r.call('focus_start',{minutes:25,countUp:true},start+63000,63000);r.call('focus_finish',{id:`focus:${start+63000}`},start+124000,124000);expect(r.state().sessions.filter(s=>s.status==='completed')).toHaveLength(2);expect(r.state().targets.map(t=>t.identities[0])).toEqual(androidApps.map(a=>a.pkg));});
+ it('starts managed focus on WeChat before its daily quota is exhausted',()=>{
+  const r=new AndroidRuntime(null);r.call('first_rule',{targetId:'wechat',minutes:30},start,0);
+  const result=r.call('focus_start',{minutes:25,manage:true,targetIds:['wechat']},start,0);
+  expect(result.enabled).toBe(true);r.tick('cn.liubai.app.preview2',start+100,100,false);
+  const tick=r.tick('com.tencent.mm',start+1000,1000,false);
+  expect(tick.notice?.decision.reason).toBe('focus');expect(tick.overlayNotice?.targetId).toBe('wechat');
+  expect(r.state().opens).toHaveLength(1);
+  expect(r.tick('tv.danmaku.bili',start+2000,2000,false).overlayNotice).toBeNull();
+ });
+ it('timer-only focus never activates management or adds a focus app restriction',()=>{
+  const r=new AndroidRuntime(null);r.call('first_rule',{targetId:'wechat',minutes:30},start,0);
+  const result=r.call('focus_start',{minutes:25,manage:false,targetIds:[]},start,0);
+  expect(result.enabled).toBe(false);expect(result.state.sessions.at(-1)?.listIds).toEqual([]);
+  r.call('management',{enabled:true},start+100,100);r.tick('cn.liubai.app.preview2',start+100,100,false);
+  expect(r.tick('com.tencent.mm',start+1000,1000,false).overlayNotice).toBeNull();
+ });
+ it('rejects empty or unknown focus targets without starting or enabling management',()=>{
+  const r=new AndroidRuntime(null);
+  for(const targetIds of [[],['unknown']])expect(()=>r.call('focus_start',{minutes:25,manage:true,targetIds},start,0)).toThrow();
+  expect(r.engine.data.enabled).toBe(false);expect(r.state().sessions).toHaveLength(0);
+ });
+ it('keeps focus selections after a policy edit and restart',()=>{
+  const r=runtime();r.call('focus_start',{minutes:25,manage:true,targetIds:['wechat','xiaohongshu-app']},start,0);
+  r.call('save',{state:r.state()},start+100,100);const reopened=new AndroidRuntime(r.snapshot());
+  const session=reopened.state().sessions.at(-1)!;
+  expect(reopened.state().lists.filter(l=>session.listIds.includes(l.id)).flatMap(l=>l.targetIds)).toEqual(['wechat','xiaohongshu-app']);
+ });
+
 });

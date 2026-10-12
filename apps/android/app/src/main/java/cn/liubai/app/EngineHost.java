@@ -31,8 +31,8 @@ final class EngineHost {
  }
  void tick(String pkg,boolean locked,Reply reply){tickBatch(new JSONArray(),pkg,locked,reply);}
  void tickBatch(JSONArray samples,String pkg,boolean locked,Reply reply){
-  if(!ready||busy){if(samples.length()>0){queue.add(()->{busy=false;tickBatch(samples,pkg,locked,reply);});}else reply.done(latest);return;}
-  busy=true;evaluate("(()=>{for(const s of "+samples+")AndroidEngine.tick(s.pkg,s.at,s.mono,s.locked);return AndroidEngine.tick("+(pkg==null?"null":JSONObject.quote(pkg))+","+System.currentTimeMillis()+","+SystemClock.elapsedRealtime()+","+locked+")})()",SystemClock.elapsedRealtime()-lastSave>5000,r->{busy=false;reply.done(r);drain();});
+  // Every service tick must receive its own evaluated result, never a cached UI load.
+  queue.add(()->evaluate("(()=>{for(const s of "+samples+")AndroidEngine.tick(s.pkg,s.at,s.mono,s.locked);return AndroidEngine.tick("+(pkg==null?"null":JSONObject.quote(pkg))+","+System.currentTimeMillis()+","+SystemClock.elapsedRealtime()+","+locked+")})()",SystemClock.elapsedRealtime()-lastSave>5000,r->{busy=false;reply.done(r);drain();}));drain();
  }
  private void evaluate(String expression,boolean persist,Reply reply){
   if(fatal!=null){reply.done(error(fatal));return;}
