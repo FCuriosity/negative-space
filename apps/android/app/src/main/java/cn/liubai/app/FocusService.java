@@ -12,6 +12,7 @@ import org.json.*;
 public final class FocusService extends Service {
  private static FocusService active;
  static boolean running(){return active!=null;}
+ static boolean hasOverlay(){return active!=null&&active.overlay!=null;}
  static void pause(){if(active!=null)active.stopSelf();}
  static boolean hasUsage(Context c){AppOpsManager ops=(AppOpsManager)c.getSystemService(APP_OPS_SERVICE);return ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,android.os.Process.myUid(),c.getPackageName())==AppOpsManager.MODE_ALLOWED;}
  private final Handler handler=new Handler(Looper.getMainLooper());

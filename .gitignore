@@ -31,3 +31,5 @@ apps/android/local.properties
 apps/android/app/src/main/assets/
 *.jks
 *.keystore
+
+apps/android/fixture/build/

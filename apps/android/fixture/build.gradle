@@ -1,0 +1,7 @@
+// Emulator-only fixture. Never included in the distributed Liubai APK.
+plugins { id 'com.android.application' }
+android {
+    namespace 'cn.liubai.fixture'
+    compileSdk 36
+    defaultConfig { applicationId 'com.tencent.mm'; minSdk 28; targetSdk 36; versionCode 1; versionName 'test-fixture' }
+}
