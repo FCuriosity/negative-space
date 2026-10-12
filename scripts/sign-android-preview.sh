@@ -18,5 +18,5 @@ if [ ! -e "$keydir/preview.keystore" ]; then
   openssl rand -base64 36 > "$keydir/password"
   "$LIUBAI_JAVA_HOME/bin/keytool" -genkeypair -keystore "$keydir/preview.keystore" -storepass:file "$keydir/password" -keypass:file "$keydir/password" -alias liubai-preview -keyalg RSA -keysize 3072 -validity 10000 -dname 'CN=Liubai Preview, O=Liubai, C=CN'
 fi
-"$LIUBAI_JAVA_HOME/bin/java" -jar "$LIUBAI_APKSIGNER_JAR" sign --ks "$keydir/preview.keystore" --ks-key-alias liubai-preview --ks-pass "file:$keydir/password" --key-pass "file:$keydir/password" --v4-signing-enabled false --out "$output" "$input"
+"$LIUBAI_JAVA_HOME/bin/java" -jar "$LIUBAI_APKSIGNER_JAR" sign --ks "$keydir/preview.keystore" --ks-key-alias liubai-preview --ks-pass "file:$keydir/password" --v4-signing-enabled false --out "$output" "$input"
 "$LIUBAI_JAVA_HOME/bin/java" -jar "$LIUBAI_APKSIGNER_JAR" verify --verbose --print-certs "$output"
