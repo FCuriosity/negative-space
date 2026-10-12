@@ -13,6 +13,8 @@ public final class SmokeInstrumentation extends Instrumentation {
   String text="";
   for(int i=0;i<15;i++){text=uiText(activity);if(text.contains("选一个容易分心的应用"))break;Thread.sleep(1000);}
   if(!text.contains("选一个容易分心的应用"))throw new Exception("Native WebView first-run UI failed: "+text);
+  int[] location=new int[2];runOnMainSync(()->activity.uiForTest().getLocationOnScreen(location));
+  if(location[1]<=0)throw new Exception("Web content overlaps the status bar");
   JSONObject loaded=call("load",new JSONObject());
   if(loaded.optBoolean("enabled"))throw new Exception("Fresh install unexpectedly enabled management");
   if(loaded.getJSONObject("state").getJSONArray("rules").length()!=0)throw new Exception("Fresh install contains preset rules");

@@ -14,8 +14,13 @@ public final class MainActivity extends Activity {
  private WebView web;
  private final Handler handler=new Handler(Looper.getMainLooper());
  private final Runnable pulse=new Runnable(){public void run(){if(!FocusService.running())EngineHost.get(MainActivity.this).tick(null,false,r->{});handler.postDelayed(this,1000);}};
- @Override public void onCreate(Bundle b){super.onCreate(b);EngineHost.get(this);web=LocalWeb.create(this);web.addJavascriptInterface(new Bridge(),"Android");setContentView(web);
-  web.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
+ @Override public void onCreate(Bundle b){super.onCreate(b);EngineHost.get(this);web=LocalWeb.create(this);web.addJavascriptInterface(new Bridge(),"Android");
+  android.widget.FrameLayout frame=new android.widget.FrameLayout(this);
+  frame.addView(web,new android.widget.FrameLayout.LayoutParams(-1,-1));setContentView(frame);
+  frame.setOnApplyWindowInsetsListener((v,insets)->{
+   if(Build.VERSION.SDK_INT>=30){android.graphics.Insets safe=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.ime());v.setPadding(safe.left,safe.top,safe.right,safe.bottom);return WindowInsets.CONSUMED;}
+   v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();
+  });frame.requestApplyInsets();
   web.loadUrl(LocalWeb.ORIGIN+"index.html");
  }
  @Override protected void onResume(){super.onResume();handler.post(pulse);}
