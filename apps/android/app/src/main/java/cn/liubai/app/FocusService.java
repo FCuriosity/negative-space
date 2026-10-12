@@ -49,7 +49,7 @@ public final class FocusService extends Service {
   JSONArray samples=new JSONArray();
   long sampleFloor=queriedAt;
   if(events!=null){UsageEvents.Event e=new UsageEvents.Event();while(events.hasNextEvent()){events.getNextEvent(e);if(e.getEventType()!=UsageEvents.Event.ACTIVITY_RESUMED&&e.getEventType()!=UsageEvents.Event.SCREEN_NON_INTERACTIVE&&e.getEventType()!=UsageEvents.Event.KEYGUARD_SHOWN)continue;
-   String identity=e.getEventType()+":"+e.getPackageName()+":"+e.getClassName()+":"+(Build.VERSION.SDK_INT>=29?e.getInstanceId():0);
+   String identity=e.getEventType()+":"+e.getPackageName()+":"+e.getClassName();
    if(!cursor.accept(e.getTimeStamp(),identity))continue;
    if(e.getEventType()==UsageEvents.Event.ACTIVITY_RESUMED){foreground=e.getPackageName();if(!managedName(foreground).isEmpty())lastRecognized=managedName(foreground);lastEvent=e.getTimeStamp();if(queriedAt!=0&&!locked){try{JSONObject sample=new JSONObject();sample.put("pkg",foreground);long observedAt=Math.max(sampleFloor,e.getTimeStamp());sample.put("at",observedAt);sample.put("mono",SystemClock.elapsedRealtime()-(now-observedAt));sample.put("locked",false);samples.put(sample);}catch(Exception ignored){}}}
    else if(e.getEventType()==UsageEvents.Event.SCREEN_NON_INTERACTIVE||e.getEventType()==UsageEvents.Event.KEYGUARD_SHOWN)foreground=null;
