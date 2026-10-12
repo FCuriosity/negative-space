@@ -22,7 +22,8 @@ public final class MainActivity extends Activity {
  @Override protected void onPause(){handler.removeCallbacks(pulse);super.onPause();}
  @Override protected void onDestroy(){web.removeJavascriptInterface("Android");web.destroy();super.onDestroy();}
  private void respond(int id,JSONObject result){if(!isFinishing()&&!isDestroyed())web.evaluateJavascript("window.nativeReply("+id+","+result+")",null);}
- final class Bridge {
+ android.webkit.WebView uiForTest(){return web;}
+ public final class Bridge {
   @JavascriptInterface public void request(int id,String method,String raw){handler.post(()->{
    try {
     JSONObject args=new JSONObject(raw);

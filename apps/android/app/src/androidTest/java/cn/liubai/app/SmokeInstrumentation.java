@@ -10,6 +10,9 @@ public final class SmokeInstrumentation extends Instrumentation {
  @Override public void onCreate(Bundle args){super.onCreate(args);start();}
  @Override public void onStart(){Bundle report=new Bundle();try{
   MainActivity activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+  String text="";
+  for(int i=0;i<15;i++){text=uiText(activity);if(text.contains("选一个容易分心的应用"))break;Thread.sleep(1000);}
+  if(!text.contains("选一个容易分心的应用"))throw new Exception("Native WebView first-run UI failed: "+text);
   JSONObject loaded=call("load",new JSONObject());
   if(loaded.optBoolean("enabled"))throw new Exception("Fresh install unexpectedly enabled management");
   if(loaded.getJSONObject("state").getJSONArray("rules").length()!=0)throw new Exception("Fresh install contains preset rules");
@@ -33,6 +36,10 @@ public final class SmokeInstrumentation extends Instrumentation {
   if(FocusService.running()||FocusService.hasOverlay())throw new Exception("Pause failed to remove service or overlay");
   report.putString("stream","LIUBAI_ANDROID_SMOKE_OK: packaged engine, first-rule safety, SQLite, OS foreground events, 2 activations, native overlay, pause cleanup\n");finish(0,report);
  }catch(Exception e){runOnMainSync(FocusService::pause);report.putString("stream","LIUBAI_ANDROID_SMOKE_FAILED: "+e+"\n");finish(1,report);}}
+ private String uiText(MainActivity activity)throws Exception{
+  CountDownLatch latch=new CountDownLatch(1);String[] text=new String[1];runOnMainSync(()->activity.uiForTest().evaluateJavascript("document.body.innerText",r->{text[0]=r;latch.countDown();}));
+  if(!latch.await(5,TimeUnit.SECONDS))throw new Exception("UI evaluation timeout");return text[0];
+ }
  private void awaitOpens(int expected)throws Exception{
   for(int i=0;i<15;i++){int count=call("load",new JSONObject()).getJSONObject("state").getJSONArray("opens").length();if(count==expected)return;if(count>expected)throw new Exception("Duplicate activation "+count);Thread.sleep(1000);}throw new Exception("OS usage activation timeout");
  }

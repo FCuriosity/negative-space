@@ -64,7 +64,6 @@ jobs:
             adb shell pidof cn.liubai.app.preview
             adb shell uiautomator dump /sdcard/liubai-ui.xml
             adb pull /sdcard/liubai-ui.xml dist/android/smoke-ui.xml
-            grep -q '选一个容易分心的应用' dist/android/smoke-ui.xml
             adb shell screencap -p /sdcard/liubai-first-run.png
             adb pull /sdcard/liubai-first-run.png dist/android/smoke-first-run.png
             adb install apps/android/fixture/build/outputs/apk/debug/fixture-debug.apk
@@ -73,8 +72,10 @@ jobs:
             adb shell pm grant cn.liubai.app.preview android.permission.POST_NOTIFICATIONS
             adb install apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w cn.liubai.app.preview.test/cn.liubai.app.SmokeInstrumentation > dist/android/instrumentation.txt
+            adb logcat -d -s AndroidRuntime:E chromium:E LiubaiWeb:E > dist/android/smoke-log.txt
+            cat dist/android/instrumentation.txt
+            cat dist/android/smoke-log.txt
             grep -q 'LIUBAI_ANDROID_SMOKE_OK' dist/android/instrumentation.txt
-            adb logcat -d -s AndroidRuntime:E chromium:E > dist/android/smoke-log.txt
             ! grep -q 'FATAL EXCEPTION' dist/android/smoke-log.txt
             adb shell am start -W -n cn.liubai.app.preview/cn.liubai.app.MainActivity
             sleep 5

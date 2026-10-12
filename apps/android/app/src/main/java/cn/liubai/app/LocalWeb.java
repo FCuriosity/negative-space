@@ -15,6 +15,9 @@ final class LocalWeb {
   s.setAllowFileAccess(false); s.setAllowContentAccess(false);
   s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
   s.setJavaScriptCanOpenWindowsAutomatically(false); s.setSupportMultipleWindows(false);
+  if((context.getApplicationInfo().flags&android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE)!=0)view.setWebChromeClient(new WebChromeClient(){
+   @Override public boolean onConsoleMessage(ConsoleMessage message){if(message.messageLevel()==ConsoleMessage.MessageLevel.ERROR)android.util.Log.e("LiubaiWeb",message.message()+" at "+message.sourceId()+":"+message.lineNumber());return true;}
+  });
   view.setWebViewClient(new WebViewClient(){
    @Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest r){return true;}
    @Override public WebResourceResponse shouldInterceptRequest(WebView v,WebResourceRequest r){
