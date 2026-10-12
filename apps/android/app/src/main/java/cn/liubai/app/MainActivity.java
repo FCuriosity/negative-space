@@ -78,7 +78,7 @@ public final class MainActivity extends Activity {
  private void showTest()throws Exception{
   if(!Settings.canDrawOverlays(this))throw new Exception("请先授权悬浮提醒");
   hideTest();
-  android.widget.LinearLayout card=new android.widget.LinearLayout(this);card.setOrientation(1);int p=(int)(20*getResources().getDisplayMetrics().density);card.setPadding(p,p,p,p);card.setBackgroundColor(0xfff7f2e7);
+  android.widget.LinearLayout card=new android.widget.LinearLayout(this);card.setOrientation(android.widget.LinearLayout.VERTICAL);int p=(int)(20*getResources().getDisplayMetrics().density);card.setPadding(p,p,p,p);card.setBackgroundColor(0xfff7f2e7);
   android.widget.TextView title=new android.widget.TextView(this);title.setText("留白 · 系统悬浮提醒测试\n可以切换到桌面查看，15 秒后自动关闭\n不启动管理，不统计次数，也不关闭应用");title.setTextColor(0xff1b5143);title.setTextSize(17);card.addView(title);
   android.widget.Button close=new android.widget.Button(this);close.setText("我看到了 · 关闭测试");close.setOnClickListener(v->hideTest());card.addView(close);
   WindowManager.LayoutParams params=new WindowManager.LayoutParams(-1,-2,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,android.graphics.PixelFormat.TRANSLUCENT);params.gravity=Gravity.BOTTOM;

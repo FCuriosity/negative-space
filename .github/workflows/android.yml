@@ -72,6 +72,7 @@ jobs:
             adb shell pm grant cn.liubai.app.preview2 android.permission.POST_NOTIFICATIONS
             adb install apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w cn.liubai.app.preview2.test/cn.liubai.app.SmokeInstrumentation > dist/android/instrumentation.txt
+            adb pull /sdcard/Android/data/cn.liubai.app.preview2/files/smoke-overlay.png dist/android/smoke-overlay.png
             adb logcat -d -s AndroidRuntime:E chromium:E LiubaiWeb:E > dist/android/smoke-log.txt
             cat dist/android/instrumentation.txt
             cat dist/android/smoke-log.txt

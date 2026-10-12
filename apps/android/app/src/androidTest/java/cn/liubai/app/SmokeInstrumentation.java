@@ -39,6 +39,9 @@ public final class SmokeInstrumentation extends Instrumentation {
   Thread.sleep(2000);
   if(!FocusService.hasOverlay())throw new Exception("OS overlay did not appear after restricted foreground activation");
   if(!"focus".equals(call("load",new JSONObject()).getJSONObject("notice").getJSONObject("decision").getString("reason")))throw new Exception("WeChat must be reminded during focus before its 30-minute quota");
+  android.graphics.Bitmap screenshot=getUiAutomation().takeScreenshot();
+  if(screenshot==null)throw new Exception("Overlay screenshot unavailable");
+  try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(getTargetContext().getExternalFilesDir(null),"smoke-overlay.png"))){screenshot.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}screenshot.recycle();
   Intent home=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
   runOnMainSync(()->activity.startActivity(home));Thread.sleep(2000);
   runOnMainSync(()->activity.startActivity(fixture));awaitOpens(2);
@@ -53,7 +56,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   Thread.sleep(2000);runOnMainSync(()->activity.startActivity(fixture));awaitOpens(3);Thread.sleep(1500);
   if(!FocusService.hasOverlay())throw new Exception("Daily quota overlay missing after focus ended");
   runOnMainSync(FocusService::pause);Thread.sleep(1000);
-  report.putString("stream","LIUBAI_ANDROID_SMOKE_OK: permission denial, real focus bridge starts service, WeChat focus below quota, delayed-event cursor, daily quota after focus,  packaged engine, first-rule safety, SQLite, OS foreground events, 2 activations, native overlay, pause cleanup\n");finish(0,report);
+  report.putString("stream","LIUBAI_ANDROID_SMOKE_OK: permission denial, real focus bridge starts service, WeChat focus below quota, delayed-event cursor, daily quota after focus,  packaged engine, first-rule safety, SQLite, OS foreground events, 3 activations, native overlay, pause cleanup\n");finish(0,report);
  }catch(Exception e){runOnMainSync(FocusService::pause);report.putString("stream","LIUBAI_ANDROID_SMOKE_FAILED: "+e+"\n");finish(1,report);}}
  private void shell(String command)throws Exception{
   try(android.os.ParcelFileDescriptor fd=getUiAutomation().executeShellCommand(command);java.io.InputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(fd)){while(in.read()!=-1){}}
