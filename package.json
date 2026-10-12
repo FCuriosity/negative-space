@@ -17,7 +17,8 @@
     "macos": "open dist/留白.app",
     "test:macos": "node scripts/test-macos.mjs",
     "windows:build": "pnpm build && node scripts/build-windows.mjs",
-    "macos:package": "pnpm macos:build && node scripts/package-macos.mjs"
+    "macos:package": "pnpm macos:build && node scripts/package-macos.mjs",
+    "android:assets": "node scripts/build-android.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",

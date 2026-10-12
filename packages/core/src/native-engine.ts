@@ -191,6 +191,7 @@ export class NativeEngine {
     return process;
   }
   recordClosedOpening(id:string,text:string,now:number) {this.data.app=this.closedOpeningState(id,text,now);}
+  clearReturnInterruption() { this.interruption=null; }
   prepareReturn(identity:NativeProcess) { this.interruption={key:`${identity.pid}:${identity.startedAt}:${identity.bundleId}`,seen:true}; this.lastFrontKey='liubai'; }
   finishCountUp(id:string,now:number) { this.data.app=finishCountUp(this.data.app,id,now); }
   saveReflection(sessionId:string,text:string,now:number) { this.data.app=saveReflection(this.data.app,sessionId,text,now); }

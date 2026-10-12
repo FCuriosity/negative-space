@@ -1,0 +1,76 @@
+name: Android installable preview
+on:
+  push:
+    branches: [main]
+    paths: ['apps/android/**', 'packages/core/**', 'apps/desktop/src/**', 'scripts/build-android.mjs', '.github/workflows/android.yml', 'package.json', 'pnpm-lock.yaml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: android-preview
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check && pnpm test && pnpm android:assets
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - run: gradle -p apps/android assembleDebug assembleDebugAndroidTest lintDebug --stacktrace
+      - name: Verify signed APK
+        run: |
+          mkdir -p dist/android
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk dist/android/liubai-0.1.0-alpha1.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/android/*.apk > dist/android/signature.txt
+          sha256sum dist/android/*.apk > dist/android/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liubai-android-alpha1
+          path: dist/android/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install and launch on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install dist/android/liubai-0.1.0-alpha1.apk
+            adb shell am start -W -n cn.liubai.app.preview/cn.liubai.app.MainActivity
+            sleep 12
+            adb shell pidof cn.liubai.app.preview
+            adb install apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell am instrument -w cn.liubai.app.preview.test/cn.liubai.app.SmokeInstrumentation > dist/android/instrumentation.txt
+            grep -q 'LIUBAI_ANDROID_SMOKE_OK' dist/android/instrumentation.txt
+            adb logcat -d -s AndroidRuntime:E chromium:E > dist/android/smoke-log.txt
+            ! grep -q 'FATAL EXCEPTION' dist/android/smoke-log.txt
+            adb shell screencap -p /sdcard/liubai.png
+            adb pull /sdcard/liubai.png dist/android/smoke.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-smoke-report
+          path: |
+            dist/android/smoke*
+            dist/android/instrumentation.txt
+            apps/android/app/build/reports/lint-results-debug.html

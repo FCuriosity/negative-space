@@ -1,0 +1,12 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'cn.liubai.app'
+ compileSdk 36
+ defaultConfig { applicationId 'cn.liubai.app'; minSdk 28; targetSdk 36; versionCode 1; versionName '0.1.0-alpha1'
+        testInstrumentationRunner 'cn.liubai.app.SmokeInstrumentation' }
+ buildTypes {
+  debug { applicationIdSuffix '.preview'; versionNameSuffix '-preview'; resValue 'string', 'app_name', '留白内测' }
+  release { minifyEnabled false; resValue 'string', 'app_name', '留白' }
+ }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}

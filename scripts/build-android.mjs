@@ -1,0 +1,13 @@
+import {build} from 'esbuild';
+import {mkdir,writeFile,copyFile,rm} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const out=resolve('apps/android/app/src/main/assets');
+await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
+await build({entryPoints:['apps/android/runtime.ts'],bundle:true,format:'iife',globalName:'AndroidEngine',target:'chrome100',outfile:out+'/runtime.js',minify:true});
+await build({entryPoints:['apps/android/ui/main.tsx'],bundle:true,format:'iife',target:'chrome100',outfile:out+'/app.js',loader:{'.png':'file','.webp':'file','.svg':'file'},assetNames:'assets/[name]-[hash]',minify:true});
+const head='<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data:; connect-src \'none\'; object-src \'none\'; base-uri \'none\'"><title>留白</title>';
+await writeFile(out+'/index.html',`<!doctype html><html lang="zh-CN"><head>${head}<link rel="stylesheet" href="app.css"></head><body><div id="root"></div><script src="polyfill.js"></script><script src="app.js"></script></body></html>`);
+await writeFile(out+'/runtime.html',`<!doctype html><html><head>${head}</head><body><script src="polyfill.js"></script><script src="runtime.js"></script></body></html>`);
+await writeFile(out+'/polyfill.js',"if(!globalThis.structuredClone)globalThis.structuredClone=value=>JSON.parse(JSON.stringify(value));");
+await copyFile('apps/desktop/public/brand/liubai-icon.svg',out+'/brand.svg');
+console.log('Android local UI and rules engine bundled: '+out);
