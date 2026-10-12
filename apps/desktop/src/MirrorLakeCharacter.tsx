@@ -29,7 +29,7 @@ export function characterLighting(illumination:number) {
 export const CHARACTER_GEOMETRY={height:192,width:128,anchorX:.4668,anchorY:.9310,reflectionScale:.76} as const;
 
 /** SVG source with its origin at the supplied canvas foot anchor, not its centre.
- * Place in scene <defs>; standing and reflected <use> share these exact layers.
+ * Standing and reflected instances use the same stable sources and geometry.
  */
 export function MirrorLakeCharacter({id,illumination,gender='male',reducedMotion=false}:{id:string;illumination:number;gender?:'male'|'female';reducedMotion?:boolean}) {
   const lighting=characterLighting(illumination);
@@ -55,9 +55,9 @@ export function MirrorLakeCharacter({id,illumination,gender='male',reducedMotion
   </g>;
 }
 
-export function MirrorLakeCharacterReflection({characterId,illumination,x,waterline,reducedMotion=false}:{characterId:string;illumination:number;x:number;waterline:number;reducedMotion?:boolean}) {
+export function MirrorLakeCharacterReflection({gender='male',illumination,x,waterline,reducedMotion=false}:{gender?:'male'|'female';illumination:number;x:number;waterline:number;reducedMotion?:boolean}) {
   const id=useId().replace(/:/g,'');
-  const {reflectionOpacity,reflectionBlur}=characterLighting(illumination);
+  const {reflectionOpacity}=characterLighting(illumination);
   const height=CHARACTER_GEOMETRY.height*CHARACTER_GEOMETRY.reflectionScale;
   return <g className="mirror-character-reflection" data-reduced-motion={reducedMotion||undefined} aria-hidden="true">
     <defs>
@@ -70,8 +70,8 @@ export function MirrorLakeCharacterReflection({characterId,illumination,x,waterl
       </mask>
     </defs>
     <g mask={`url(#${id}-mask)`}>
-      <g className="mirror-character-water-image" style={{opacity:reflectionOpacity,filter:`blur(${reflectionBlur}px)`}}>
-        <use href={`#${characterId}`} transform={`translate(${x} ${waterline}) scale(1 -${CHARACTER_GEOMETRY.reflectionScale})`}/>
+      <g className="mirror-character-water-image" style={{opacity:reflectionOpacity}}>
+        <g transform={`translate(${x} ${waterline}) scale(1 -${CHARACTER_GEOMETRY.reflectionScale})`}><MirrorLakeCharacter id={`${id}-reflected-character`} illumination={illumination} gender={gender} reducedMotion={reducedMotion}/></g>
       </g>
     </g>
   </g>;

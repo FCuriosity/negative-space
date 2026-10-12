@@ -64,8 +64,24 @@ public final class SmokeInstrumentation extends Instrumentation {
   Thread.sleep(2000);runOnMainSync(()->activity.startActivity(fixture));awaitOpens(3);Thread.sleep(1500);
   if(!FocusService.hasOverlay())throw new Exception("Daily quota overlay missing after focus ended");
   runOnMainSync(FocusService::pause);Thread.sleep(1000);
-  report.putString("stream","LIUBAI_ANDROID_SMOKE_OK: shared overlay form, tag selection, inline reason grant, chunked 3MB persistence, permission denial, real focus bridge starts service, WeChat focus below quota, delayed-event cursor, daily quota after focus,  packaged engine, first-rule safety, SQLite, OS foreground events, 3 activations, native overlay, pause cleanup\n");finish(0,report);
+  runOnMainSync(()->activity.startActivity(new Intent(activity,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP)));Thread.sleep(1500);
+  uiEval(activity,"Array.from(document.querySelectorAll('nav button')).find(b=>b.textContent==='回顾').click();true");Thread.sleep(500);
+  uiEval(activity,"Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='镜湖').click();true");Thread.sleep(700);
+  uiEval(activity,"document.querySelector('.mirror-explanation').open=true;true");Thread.sleep(300);
+  uiEval(activity,"window.lakeNode=document.querySelector('.mirror-scene');window.lakeHeight=lakeNode.getBoundingClientRect().height;window.lakeCount=document.querySelectorAll('.mirror-scene *').length;const slider=document.querySelector('#mirror-preview-light');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(slider,'100');slider.dispatchEvent(new Event('input',{bubbles:true}));true");Thread.sleep(700);
+  String lakeCheck=uiEval(activity,"window.lakeCount<350&&document.querySelectorAll('.mirror-sky-layers image').length===28&&Number(getComputedStyle(document.querySelector('.mirror-sky-layers image')).opacity)>0.5");
+  if(!"true".equals(lakeCheck))throw new Exception("Cached sky layers failed: "+lakeCheck);
+  uiEval(activity,"document.querySelector('.mirror-world').scrollIntoView();Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='回到真实湖面').click();true");Thread.sleep(700);
+  String restored=uiEval(activity,"window.lakeNode===document.querySelector('.mirror-scene')&&Math.abs(window.lakeHeight-lakeNode.getBoundingClientRect().height)<1&&document.querySelector('#mirror-preview-light').value==='0'&&Number(getComputedStyle(document.querySelector('.mirror-sky-layers image')).opacity)===0");
+  if(!"true".equals(restored))throw new Exception("Real lake reset replaced scene or changed layout: "+restored);
+  android.graphics.Bitmap lakeShot=getUiAutomation().takeScreenshot();
+  if(lakeShot==null)throw new Exception("Lake screenshot unavailable");
+  try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(getTargetContext().getExternalFilesDir(null),"smoke-lake.png"))){lakeShot.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}lakeShot.recycle();
+  report.putString("stream","LIUBAI_ANDROID_SMOKE_OK: cached mirror sky, stable real-light reset, shared overlay form, tag selection, inline reason grant, chunked 3MB persistence, permission denial, real focus bridge starts service, WeChat focus below quota, delayed-event cursor, daily quota after focus,  packaged engine, first-rule safety, SQLite, OS foreground events, 3 activations, native overlay, pause cleanup\n");finish(0,report);
  }catch(Exception e){runOnMainSync(FocusService::pause);report.putString("stream","LIUBAI_ANDROID_SMOKE_FAILED: "+e+"\n");finish(1,report);}}
+ private String uiEval(MainActivity activity,String script)throws Exception{
+  CountDownLatch latch=new CountDownLatch(1);String[] value=new String[]{""};runOnMainSync(()->activity.uiForTest().evaluateJavascript(script,r->{value[0]=r;latch.countDown();}));if(!latch.await(5,TimeUnit.SECONDS))throw new Exception("UI evaluation timeout");return value[0];
+ }
  private String overlayEval(String script)throws Exception{
   CountDownLatch latch=new CountDownLatch(1);String[] value=new String[]{""};runOnMainSync(()->{android.webkit.WebView w=FocusService.currentOverlayForTest();if(w==null){latch.countDown();return;}w.evaluateJavascript(script,r->{value[0]=r;latch.countDown();});});if(!latch.await(5,TimeUnit.SECONDS))throw new Exception("Overlay evaluation timeout");return value[0];
  }

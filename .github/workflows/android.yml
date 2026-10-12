@@ -36,12 +36,12 @@ jobs:
       - name: Verify signed APK
         run: |
           mkdir -p dist/android
-          cp apps/android/app/build/outputs/apk/debug/app-debug.apk dist/android/liubai-0.1.0-alpha3-ci.apk
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk dist/android/liubai-0.1.0-alpha4-ci.apk
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/android/*.apk > dist/android/signature.txt
           sha256sum dist/android/*.apk > dist/android/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: liubai-android-alpha3-ci
+          name: liubai-android-alpha4-ci
           path: dist/android/
           if-no-files-found: error
           retention-days: 30
@@ -58,7 +58,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install dist/android/liubai-0.1.0-alpha3-ci.apk
+            adb install dist/android/liubai-0.1.0-alpha4-ci.apk
             adb shell am start -W -n cn.liubai.app.preview3/cn.liubai.app.MainActivity
             sleep 12
             adb shell pidof cn.liubai.app.preview3
@@ -73,6 +73,7 @@ jobs:
             adb install apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w cn.liubai.app.preview3.test/cn.liubai.app.SmokeInstrumentation > dist/android/instrumentation.txt
             adb pull /sdcard/Android/data/cn.liubai.app.preview3/files/smoke-overlay.png dist/android/smoke-overlay.png
+            adb pull /sdcard/Android/data/cn.liubai.app.preview3/files/smoke-lake.png dist/android/smoke-lake.png
             adb logcat -d -s AndroidRuntime:E chromium:E LiubaiWeb:E > dist/android/smoke-log.txt
             cat dist/android/instrumentation.txt
             cat dist/android/smoke-log.txt
