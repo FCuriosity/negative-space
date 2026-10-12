@@ -10,4 +10,5 @@ await writeFile(out+'/index.html',`<!doctype html><html lang="zh-CN"><head>${hea
 await writeFile(out+'/runtime.html',`<!doctype html><html><head>${head}</head><body><script src="polyfill.js"></script><script src="runtime.js"></script></body></html>`);
 await writeFile(out+'/polyfill.js',"if(!globalThis.structuredClone)globalThis.structuredClone=value=>JSON.parse(JSON.stringify(value));");
 await copyFile('apps/desktop/public/brand/liubai-icon.svg',out+'/brand.svg');
+await copyFile('apps/android/THIRD_PARTY_NOTICES.txt',out+'/THIRD_PARTY_NOTICES.txt');
 console.log('Android local UI and rules engine bundled: '+out);
