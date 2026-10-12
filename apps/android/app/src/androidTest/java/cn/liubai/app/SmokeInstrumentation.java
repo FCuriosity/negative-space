@@ -65,6 +65,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   if(!FocusService.hasOverlay())throw new Exception("Daily quota overlay missing after focus ended");
   runOnMainSync(FocusService::pause);Thread.sleep(1000);
   runOnMainSync(()->activity.startActivity(new Intent(activity,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP)));Thread.sleep(1500);
+  uiEval(activity,"Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='稍后补写')?.click();true");Thread.sleep(300);
   uiEval(activity,"Array.from(document.querySelectorAll('nav button')).find(b=>b.textContent==='回顾').click();true");Thread.sleep(500);
   uiEval(activity,"Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='镜湖').click();true");Thread.sleep(700);
   uiEval(activity,"document.querySelector('.mirror-explanation').open=true;true");Thread.sleep(300);
@@ -74,6 +75,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   uiEval(activity,"document.querySelector('.mirror-world').scrollIntoView();Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='回到真实湖面').click();true");Thread.sleep(700);
   String restored=uiEval(activity,"window.lakeNode===document.querySelector('.mirror-scene')&&Math.abs(window.lakeHeight-lakeNode.getBoundingClientRect().height)<1&&document.querySelector('#mirror-preview-light').value==='0'&&Number(getComputedStyle(document.querySelector('.mirror-sky-layers image')).opacity)===0");
   if(!"true".equals(restored))throw new Exception("Real lake reset replaced scene or changed layout: "+restored);
+  if(!"true".equals(uiEval(activity,"document.querySelector('[role=dialog]')===null")))throw new Exception("Lake screenshot obscured by dialog");
   android.graphics.Bitmap lakeShot=getUiAutomation().takeScreenshot();
   if(lakeShot==null)throw new Exception("Lake screenshot unavailable");
   try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(getTargetContext().getExternalFilesDir(null),"smoke-lake.png"))){lakeShot.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}lakeShot.recycle();
