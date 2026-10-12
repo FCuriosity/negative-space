@@ -1,14 +1,14 @@
 # 留白安卓内测与国内商店发行
 
-当前版本：0.1.0-alpha3，Android 9+，需 Android System WebView / Chrome 100+，原生鸿蒙不在此 APK 的兼容范围内
+当前版本：0.1.0-alpha4，Android 9+，需 Android System WebView / Chrome 100+，原生鸿蒙不在此 APK 的兼容范围内
 
 ## 安装内测包
 
-日常内测使用开发者提供的固定签名 `liubai-0.1.0-alpha3.apk`，名称「留白内测」，包名 `cn.liubai.app.preview3`
-GitHub Actions 的 `liubai-android-alpha3-ci` 是临时证书的构建验证包，不能和固定签名版本混装覆盖
+日常内测使用开发者提供的固定签名 `liubai-0.1.0-alpha4.apk`，名称「留白内测」，包名 `cn.liubai.app.preview3`
+GitHub Actions 的 `liubai-android-alpha4-ci` 是临时证书的构建验证包，不能和固定签名版本混装覆盖
 
 请保留 alpha1/alpha2，旧版记录不会自动迁移；测试前暂停旧版管理，避免重复提醒
-本次开始固定保留内测签名，后续同包名、同签名且版本号递增可覆盖安装；私钥不上传 GitHub
+alpha4 沿用 alpha3 的本机固定签名，可以覆盖本机签名的 alpha3；后续同包名、同签名且版本号递增可覆盖安装；私钥不上传 GitHub
 安装时仅为打开 APK 的文件管理器或浏览器允许本次安装来源，之后可关闭
 
 1. 首次只选择一个应用，设置温和规则并完成安全演示

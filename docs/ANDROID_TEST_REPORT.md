@@ -84,3 +84,25 @@ SHA256：`3c724bd94fd53d89369a767f5114bb7387d6044b7a5712fab7370b92185799c9`
 
 安装新包前暂停旧版管理，保留旧版及记录；alpha3 可共存但不会读取旧包的私有数据库
 从本次固定签名包开始的后续版本须保持包名、签名并递增 versionCode；覆盖升级的数据保留仍需下一版本验收
+
+
+## Alpha4 · 镜湖亮度流畅度修复（2026-10-13）
+
+- 保留确定性的 2700 个星点位置与配色，将逐点动态 SVG 改为 12 个缓存星光图层、基础星点和星云图层，天空与湖中倒影使用相同来源
+- 不再通过动态 SVG `<use>` 复制人物与天空；人物图层保持挂载，倒影使用固定模糊、透明度渐变，避免不断重建模糊滤镜
+- 亮度滑块从 20% 步进改为 1%，统一 360 ms 淡变；恢复真实亮度时保留场景节点，标题预留高度以免画面位移
+- 男女形象均通过恢复真实亮度的单调渐变、反向拖动、折叠演示、减少动态效果及真实记录未变的浏览器回归
+- 相同 390 × 844 浏览器视口、4 倍 CPU 降速、90 帧快速反向调节对照：修复前节点 3133，帧间隔中位数 916.4 ms、P95 1380.3 ms；修复后男性节点 186，中位数 16.7 ms、P95 18.0 ms；含女性形象的回归中位数 16.7 ms、P95 18.4 ms
+- 上述为桌面 Chrome 降速测试，不是 OPPO 实测帧率；190 项逻辑测试、桌面生产构建及 Java 编译通过
+
+复现：先运行 `pnpm android:assets` 并在本地 1422 端口提供 assets，再运行 `node scripts/test-mirror-render.cjs`；可用 `LIUBAI_PLAYWRIGHT_MODULE`、`LIUBAI_CHROME`、`LIUBAI_PREVIEW_URL` 指定工具和地址
+
+最终 [Actions 38285797645](https://github.com/FCuriosity/negative-space/actions/runs/38285797645) 全部通过，源码 `a3409e0f14177f53162f9f47ab0fc1d97564f817`
+新增 Android 15 原生 WebView 验收：缓存星空图层显示、100% 演示恢复到真实 0%、场景节点与高度稳定；原有悬浮提醒、使用次数和 SQLite 测试一并通过
+
+交付：`liubai-0.1.0-alpha4.apk`，6,408,140 字节，versionCode 4
+SHA256：`f009c7c6e63ef6f43a662a1ce5d10bf2260d3ca6e7bc34fc9787b47d86e5392a`
+APK v3 签名验证通过，与上次提供的固定签名 alpha3 证书一致，沿用包名 `cn.liubai.app.preview3`；重签后代码和资源与 CI APK 逐文件一致
+覆盖固定签名 alpha3 时无需卸载；CI 临时证书版不能混装覆盖，OPPO ColorOS 17 的实际手感仍待用户复测
+
+补充视觉验收：[Actions 38286754633](https://github.com/FCuriosity/negative-space/actions/runs/38286754633) 通过，测试先关闭提前结束后的心得弹窗再截图，已检查无遮挡的真实 0% 湖面；此提交只调整测试脚本，应用代码与交付 APK 相同
