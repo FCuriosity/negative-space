@@ -12,6 +12,7 @@ import org.json.*;
 
 public final class MainActivity extends Activity {
  private WebView web;
+ private int pendingFileRequest=-1;private String pendingFileMethod=null;private String pendingExport=null;
  private View testOverlay;
  private final Runnable dismissTest=()->hideTest();
  private final Handler handler=new Handler(Looper.getMainLooper());
@@ -34,6 +35,15 @@ public final class MainActivity extends Activity {
   @JavascriptInterface public void request(int id,String method,String raw){handler.post(()->{
    try {
     JSONObject args=new JSONObject(raw);
+    if(method.equals("pick_image")||method.equals("pick_backup")||method.equals("export_backup")){
+     if(pendingFileRequest!=-1)throw new Exception("请先完成当前文件选择");
+     pendingFileRequest=id;pendingFileMethod=method;
+     if(method.equals("export_backup")){EngineHost.get(MainActivity.this).call("load",new JSONObject(),r->{try{if(r.has("error"))throw new Exception(r.getString("error"));pendingExport=r.getJSONObject("state").toString();if(pendingExport.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>10*1024*1024)throw new Exception("备份超过 10 MB，请缩短记录保留时间后重试");Intent choose=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,"liubai-backup.json");startActivityForResult(choose,41);}catch(Exception e){finishFile(EngineHost.error(e.getMessage()));}});}
+     else{Intent choose=new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(method.equals("pick_image")?"image/*":"*/*");startActivityForResult(choose,41);}return;
+    }
+    if(method.equals("immersive")){boolean enabled=args.optBoolean("enabled");if(Build.VERSION.SDK_INT>=30){if(enabled)getWindow().getInsetsController().hide(WindowInsets.Type.systemBars());else getWindow().getInsetsController().show(WindowInsets.Type.systemBars());}else getWindow().getDecorView().setSystemUiVisibility(enabled?View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY:View.SYSTEM_UI_FLAG_VISIBLE);respond(id,new JSONObject());return;}
+    if(method.equals("leave")){EngineHost.get(MainActivity.this).call(method,args,r->{respond(id,r);if(!r.has("error"))startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME));});return;}
+    if(method.equals("restore")){EngineHost.get(MainActivity.this).call(method,args,r->{if(!r.has("error"))FocusService.pause();respond(id,r);});return;}
     if(method.equals("permissions")){JSONObject r=new JSONObject();r.put("usage",FocusService.hasUsage(MainActivity.this));r.put("overlay",Settings.canDrawOverlays(MainActivity.this));r.put("notifications",Build.VERSION.SDK_INT<33||checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED);r.put("running",FocusService.running());r.put("diagnostics",FocusService.diagnostics(MainActivity.this));r.put("device",Build.MANUFACTURER+" "+Build.MODEL+" · Android "+Build.VERSION.RELEASE);android.content.pm.PackageInfo w=WebView.getCurrentWebViewPackage();r.put("webview",w==null?"未知":w.versionName);respond(id,r);return;}
     if(method.equals("overlay_test")){showTest();respond(id,new JSONObject());return;}
     if(method.equals("settings")){
@@ -46,9 +56,9 @@ public final class MainActivity extends Activity {
      else throw new Exception("不支持的设置");
      startActivity(intent);respond(id,new JSONObject());return;
     }
-    if(method.equals("focus_start")&&args.optBoolean("manage")){
+    if((method.equals("focus_start")||method.equals("space_start"))&&args.optBoolean("manage")){
      if(!FocusService.hasUsage(MainActivity.this)||!Settings.canDrawOverlays(MainActivity.this))throw new Exception("专注提醒尚未开始，请到设置授权使用情况访问和悬浮提醒，再回来开始");
-     startManagedFocus(args,r->respond(id,r));return;
+     startManagedFocus(method,args,r->respond(id,r));return;
     }
     if(method.equals("management")){
      boolean enable=args.getBoolean("enabled");
@@ -59,21 +69,36 @@ public final class MainActivity extends Activity {
      });return;
     }
     EngineHost.get(MainActivity.this).call(method,args,r->respond(id,r));
-   }catch(Exception e){respond(id,EngineHost.error(e.getMessage()));}
+   }catch(Exception e){if(pendingFileRequest==id)finishFile(EngineHost.error(e.getMessage()));else respond(id,EngineHost.error(e.getMessage()));}
   });}
  }
- void startManagedFocus(JSONObject args,EngineHost.Reply reply){
+ void startManagedFocus(String method,JSONObject args,EngineHost.Reply reply){
   if(!FocusService.hasUsage(this)||!Settings.canDrawOverlays(this)){reply.done(EngineHost.error("请先授权使用情况访问和悬浮提醒"));return;}
   final boolean wasRunning=FocusService.running();
-  EngineHost.get(this).call("focus_start",args,result->{
+  EngineHost.get(this).call(method,args,result->{
    if(result.has("error")){reply.done(result);return;}
    try{if(!FocusService.running())startForegroundService(new Intent(this,FocusService.class));reply.done(result);}
    catch(Exception e){
-    try{org.json.JSONArray sessions=result.getJSONObject("state").getJSONArray("sessions");for(int j=0;j<sessions.length();j++){JSONObject session=sessions.getJSONObject(j);if("active".equals(session.optString("status")))EngineHost.get(this).call("focus_cancel",new JSONObject().put("id",session.getString("id")),ignored->{});}}catch(Exception ignored){}
+    try{org.json.JSONArray sessions=result.getJSONObject("state").getJSONArray("sessions");for(int j=0;j<sessions.length();j++){JSONObject session=sessions.getJSONObject(j);if("active".equals(session.optString("status")))EngineHost.get(this).call("focus_start_failed",new JSONObject().put("id",session.getString("id")),ignored->{});}}catch(Exception ignored){}
     if(!wasRunning)EngineHost.get(this).call("management",jsonEnabled(false),ignored->{});
     reply.done(EngineHost.error("专注未能启动后台提醒，请检查系统限制后重试"));
    }
   });
+ }
+ private void finishFile(JSONObject r){int id=pendingFileRequest;pendingFileRequest=-1;pendingFileMethod=null;pendingExport=null;if(id!=-1)respond(id,r);}
+ @Override protected void onActivityResult(int code,int result,Intent data){super.onActivityResult(code,result,data);if(code!=41||pendingFileRequest==-1)return;
+  if(result!=RESULT_OK||data==null||data.getData()==null){finishFile(EngineHost.error("已取消文件选择"));return;}
+  final Uri uri=data.getData();final String method=pendingFileMethod,export=pendingExport;
+  new Thread(()->{JSONObject output;
+   try{
+    if("export_backup".equals(method)){try(java.io.OutputStream out=getContentResolver().openOutputStream(uri,"wt")){if(out==null)throw new Exception("无法写入文件");out.write(export.getBytes(java.nio.charset.StandardCharsets.UTF_8));}output=new JSONObject().put("saved",true);}
+    else{byte[] bytes;try(java.io.InputStream in=getContentResolver().openInputStream(uri);java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream()){if(in==null)throw new Exception("无法读取文件");byte[] buffer=new byte[8192];int n,total=0;while((n=in.read(buffer))!=-1){total+=n;if(total>10*1024*1024)throw new Exception("文件不能超过 10 MB");out.write(buffer,0,n);}bytes=out.toByteArray();}
+     if("pick_image".equals(method)){String mime=getContentResolver().getType(uri);if(!java.util.Arrays.asList("image/jpeg","image/png","image/webp").contains(mime))throw new Exception("请选择 JPG、PNG 或 WebP 图片");String name="我的背景";try(android.database.Cursor c=getContentResolver().query(uri,new String[]{android.provider.OpenableColumns.DISPLAY_NAME},null,null,null)){if(c!=null&&c.moveToFirst())name=c.getString(0);}output=new JSONObject().put("name",name).put("mime",mime).put("dataUrl","data:"+mime+";base64,"+android.util.Base64.encodeToString(bytes,android.util.Base64.NO_WRAP));}
+     else output=new JSONObject().put("text",new String(bytes,java.nio.charset.StandardCharsets.UTF_8));
+    }
+   }catch(Exception e){output=EngineHost.error(e.getMessage());}
+   final JSONObject response=output;handler.post(()->finishFile(response));
+  },"liubai-file").start();
  }
  private void showTest()throws Exception{
   if(!Settings.canDrawOverlays(this))throw new Exception("请先授权悬浮提醒");

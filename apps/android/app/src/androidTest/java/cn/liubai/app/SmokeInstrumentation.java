@@ -25,6 +25,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   if(saved.optBoolean("enabled"))throw new Exception("Saving first rule started enforcement");
   if(saved.getJSONObject("state").getJSONArray("rules").length()!=1)throw new Exception("Rule not persisted");
   String raw=new StateStore(getTargetContext()).read();if(raw==null||!raw.contains("first-gentle-rule"))throw new Exception("SQLite snapshot missing");
+  StateStore storage=new StateStore(getTargetContext());String original=storage.read();String large="{\"backgroundTest\":\""+"x".repeat(3*1024*1024)+"\"}";storage.write(large);if(!large.equals(storage.read()))throw new Exception("Large background snapshot did not round-trip");storage.write(original);
   // Exercise the actual JavaScript -> Android bridge used by the focus button.
   JSONObject focus=new JSONObject().put("minutes",25).put("manage",true).put("targetIds",new JSONArray().put("wechat"));
   shell("appops set "+getTargetContext().getPackageName()+" GET_USAGE_STATS ignore");
@@ -39,9 +40,16 @@ public final class SmokeInstrumentation extends Instrumentation {
   Thread.sleep(2000);
   if(!FocusService.hasOverlay())throw new Exception("OS overlay did not appear after restricted foreground activation");
   if(!"focus".equals(call("load",new JSONObject()).getJSONObject("notice").getJSONObject("decision").getString("reason")))throw new Exception("WeChat must be reminded during focus before its 30-minute quota");
+  String overlayText="";for(int i=0;i<25;i++){overlayText=overlayEval("document.body?.innerText??''");if(overlayText.contains("快捷理由")&&overlayText.contains("这次打开"))break;Thread.sleep(400);}
+  if(!overlayText.contains("快捷理由"))throw new Exception("Shared reminder UI did not render: "+overlayText);
   android.graphics.Bitmap screenshot=getUiAutomation().takeScreenshot();
   if(screenshot==null)throw new Exception("Overlay screenshot unavailable");
   try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(getTargetContext().getExternalFilesDir(null),"smoke-overlay.png"))){screenshot.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}screenshot.recycle();
+  overlayEval("document.querySelector('[aria-label=\"选择理由：摸鱼\"]').click();true");Thread.sleep(300);
+  overlayEval("Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='有明确目的').click();true");Thread.sleep(300);
+  overlayEval("Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('继续 5 分钟')).click();true");Thread.sleep(1200);
+  if(FocusService.hasOverlay())throw new Exception("Inline reason grant did not close overlay");
+  if(!call("load",new JSONObject()).getJSONObject("state").getJSONArray("openReasons").toString().contains("摸鱼"))throw new Exception("Inline overlay reason not persisted");
   Intent home=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
   runOnMainSync(()->activity.startActivity(home));Thread.sleep(2000);
   runOnMainSync(()->activity.startActivity(fixture));awaitOpens(2);
@@ -56,8 +64,11 @@ public final class SmokeInstrumentation extends Instrumentation {
   Thread.sleep(2000);runOnMainSync(()->activity.startActivity(fixture));awaitOpens(3);Thread.sleep(1500);
   if(!FocusService.hasOverlay())throw new Exception("Daily quota overlay missing after focus ended");
   runOnMainSync(FocusService::pause);Thread.sleep(1000);
-  report.putString("stream","LIUBAI_ANDROID_SMOKE_OK: permission denial, real focus bridge starts service, WeChat focus below quota, delayed-event cursor, daily quota after focus,  packaged engine, first-rule safety, SQLite, OS foreground events, 3 activations, native overlay, pause cleanup\n");finish(0,report);
+  report.putString("stream","LIUBAI_ANDROID_SMOKE_OK: shared overlay form, tag selection, inline reason grant, chunked 3MB persistence, permission denial, real focus bridge starts service, WeChat focus below quota, delayed-event cursor, daily quota after focus,  packaged engine, first-rule safety, SQLite, OS foreground events, 3 activations, native overlay, pause cleanup\n");finish(0,report);
  }catch(Exception e){runOnMainSync(FocusService::pause);report.putString("stream","LIUBAI_ANDROID_SMOKE_FAILED: "+e+"\n");finish(1,report);}}
+ private String overlayEval(String script)throws Exception{
+  CountDownLatch latch=new CountDownLatch(1);String[] value=new String[]{""};runOnMainSync(()->{android.webkit.WebView w=FocusService.currentOverlayForTest();if(w==null){latch.countDown();return;}w.evaluateJavascript(script,r->{value[0]=r;latch.countDown();});});if(!latch.await(5,TimeUnit.SECONDS))throw new Exception("Overlay evaluation timeout");return value[0];
+ }
  private void shell(String command)throws Exception{
   try(android.os.ParcelFileDescriptor fd=getUiAutomation().executeShellCommand(command);java.io.InputStream in=new android.os.ParcelFileDescriptor.AutoCloseInputStream(fd)){while(in.read()!=-1){}}
  }
@@ -71,7 +82,7 @@ public final class SmokeInstrumentation extends Instrumentation {
   }throw new Exception("Android bridge timed out");
  }
  private String uiText(MainActivity activity)throws Exception{
-  CountDownLatch latch=new CountDownLatch(1);String[] text=new String[1];runOnMainSync(()->activity.uiForTest().evaluateJavascript("document.body.innerText",r->{text[0]=r;latch.countDown();}));
+  CountDownLatch latch=new CountDownLatch(1);String[] text=new String[1];runOnMainSync(()->activity.uiForTest().evaluateJavascript("document.body?.innerText??''",r->{text[0]=r;latch.countDown();}));
   if(!latch.await(5,TimeUnit.SECONDS))throw new Exception("UI evaluation timeout");return text[0];
  }
  private void awaitOpens(int expected)throws Exception{

@@ -36,12 +36,12 @@ jobs:
       - name: Verify signed APK
         run: |
           mkdir -p dist/android
-          cp apps/android/app/build/outputs/apk/debug/app-debug.apk dist/android/liubai-0.1.0-alpha2.apk
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk dist/android/liubai-0.1.0-alpha3-ci.apk
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/android/*.apk > dist/android/signature.txt
           sha256sum dist/android/*.apk > dist/android/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: liubai-android-alpha2
+          name: liubai-android-alpha3-ci
           path: dist/android/
           if-no-files-found: error
           retention-days: 30
@@ -58,27 +58,27 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install dist/android/liubai-0.1.0-alpha2.apk
-            adb shell am start -W -n cn.liubai.app.preview2/cn.liubai.app.MainActivity
+            adb install dist/android/liubai-0.1.0-alpha3-ci.apk
+            adb shell am start -W -n cn.liubai.app.preview3/cn.liubai.app.MainActivity
             sleep 12
-            adb shell pidof cn.liubai.app.preview2
+            adb shell pidof cn.liubai.app.preview3
             adb shell uiautomator dump /sdcard/liubai-ui.xml
             adb pull /sdcard/liubai-ui.xml dist/android/smoke-ui.xml
             adb shell screencap -p /sdcard/liubai-first-run.png
             adb pull /sdcard/liubai-first-run.png dist/android/smoke-first-run.png
             adb install apps/android/fixture/build/outputs/apk/debug/fixture-debug.apk
-            adb shell appops set cn.liubai.app.preview2 GET_USAGE_STATS allow
-            adb shell appops set cn.liubai.app.preview2 SYSTEM_ALERT_WINDOW allow
-            adb shell pm grant cn.liubai.app.preview2 android.permission.POST_NOTIFICATIONS
+            adb shell appops set cn.liubai.app.preview3 GET_USAGE_STATS allow
+            adb shell appops set cn.liubai.app.preview3 SYSTEM_ALERT_WINDOW allow
+            adb shell pm grant cn.liubai.app.preview3 android.permission.POST_NOTIFICATIONS
             adb install apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            adb shell am instrument -w cn.liubai.app.preview2.test/cn.liubai.app.SmokeInstrumentation > dist/android/instrumentation.txt
-            adb pull /sdcard/Android/data/cn.liubai.app.preview2/files/smoke-overlay.png dist/android/smoke-overlay.png
+            adb shell am instrument -w cn.liubai.app.preview3.test/cn.liubai.app.SmokeInstrumentation > dist/android/instrumentation.txt
+            adb pull /sdcard/Android/data/cn.liubai.app.preview3/files/smoke-overlay.png dist/android/smoke-overlay.png
             adb logcat -d -s AndroidRuntime:E chromium:E LiubaiWeb:E > dist/android/smoke-log.txt
             cat dist/android/instrumentation.txt
             cat dist/android/smoke-log.txt
             grep -q 'LIUBAI_ANDROID_SMOKE_OK' dist/android/instrumentation.txt
             ! grep -q 'FATAL EXCEPTION' dist/android/smoke-log.txt
-            adb shell am start -W -n cn.liubai.app.preview2/cn.liubai.app.MainActivity
+            adb shell am start -W -n cn.liubai.app.preview3/cn.liubai.app.MainActivity
             sleep 5
             adb shell screencap -p /sdcard/liubai.png
             adb pull /sdcard/liubai.png dist/android/smoke.png

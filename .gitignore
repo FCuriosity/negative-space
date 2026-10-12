@@ -33,3 +33,6 @@ apps/android/app/src/main/assets/
 *.keystore
 
 apps/android/fixture/build/
+
+# Local Android signing identity and passwords (never publish)
+.local/

@@ -27,7 +27,7 @@ final class EngineHost {
  static JSONObject error(String message){JSONObject o=new JSONObject();try{o.put("error",message);}catch(Exception ignored){}return o;}
  private void drain(){if(ready&&!busy&&!queue.isEmpty()){busy=true;queue.remove().run();}}
  void call(String method,JSONObject args,Reply reply){
-  queue.add(()->evaluate("AndroidEngine.call("+JSONObject.quote(method)+","+args+","+System.currentTimeMillis()+","+SystemClock.elapsedRealtime()+")",!method.equals("load"),r->{busy=false;reply.done(r);drain();}));drain();
+  queue.add(()->evaluate("AndroidEngine.call("+JSONObject.quote(method)+","+args+","+System.currentTimeMillis()+","+SystemClock.elapsedRealtime()+")",!method.startsWith("load"),r->{busy=false;reply.done(r);drain();}));drain();
  }
  void tick(String pkg,boolean locked,Reply reply){tickBatch(new JSONArray(),pkg,locked,reply);}
  void tickBatch(JSONArray samples,String pkg,boolean locked,Reply reply){

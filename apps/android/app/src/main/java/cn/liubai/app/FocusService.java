@@ -28,6 +28,8 @@ public final class FocusService extends Service {
  static boolean hasUsage(Context c){AppOpsManager ops=(AppOpsManager)c.getSystemService(APP_OPS_SERVICE);return ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,android.os.Process.myUid(),c.getPackageName())==AppOpsManager.MODE_ALLOWED;}
  private final Handler handler=new Handler(Looper.getMainLooper());
  private long queriedAt=0,heartbeat=0,lastEvent=0;private final UsageCursor cursor=new UsageCursor();private String foreground=null,noticeId=null,lastRecognized="";
+ private android.webkit.WebView overlayWeb;
+ private String suppressedPackage=null;
  private View overlay;private WindowManager windows;
  @Override public void onCreate(){super.onCreate();active=this;windows=(WindowManager)getSystemService(WINDOW_SERVICE);}
  @Override public int onStartCommand(Intent i,int flags,int id){
@@ -60,22 +62,43 @@ public final class FocusService extends Service {
    if(active!=FocusService.this)return;
    if(result.has("error")){stop(result.optString("error"));return;}
    if(!result.optBoolean("enabled")){stop("管理已暂停");return;}heartbeat=System.currentTimeMillis();
-   JSONObject notice=result.optJSONObject("overlayNotice");if(notice==null||locked||front==null)hideOverlay();else showOverlay(notice);
+   if(suppressedPackage!=null&&!suppressedPackage.equals(front))suppressedPackage=null;
+   JSONObject notice=result.optJSONObject("overlayNotice");if(notice==null||locked||front==null||front.equals(suppressedPackage))hideOverlay();else showOverlay(notice);
   handler.postDelayed(this,1000);
   });
   }catch(Exception e){stop("系统未能提供应用切换或提醒服务，请检查权限后重试");}
  }};
  private void showOverlay(JSONObject n){
   if(n.optString("id").equals(noticeId))return;hideOverlay();noticeId=n.optString("id");
-  LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);int p=(int)(24*getResources().getDisplayMetrics().density);card.setPadding(p,p,p,p);card.setBackgroundColor(0xfff7f2e7);
-  TextView title=new TextView(this);title.setText("停一下，回到自己的节奏");title.setTextSize(22);title.setTextColor(0xff1b5143);card.addView(title);
-  TextView text=new TextView(this);text.setText(n.optString("name")+" 已触发你设置的规则\n留白不会关闭应用或丢弃你的工作\n填写理由后可临时继续 5 分钟");text.setTextColor(0xff30433c);text.setTextSize(16);text.setPadding(0,p/2,0,p/2);card.addView(text);
-  Button review=new Button(this);review.setText("打开留白 · 填写理由");review.setOnClickListener(v->{hideOverlay();startActivity(new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP));});card.addView(review);
-  Button pause=new Button(this);pause.setText("暂停管理");pause.setOnClickListener(v->stop("你已暂停管理"));card.addView(pause);
-  WindowManager.LayoutParams params=new WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,PixelFormat.TRANSLUCENT);params.gravity=Gravity.BOTTOM;
-  try{windows.addView(card,params);overlay=card;}catch(Exception e){stop("系统未能显示悬浮提醒，请重新检查悬浮窗权限");}
+  LinearLayout frame=new LinearLayout(this);frame.setOrientation(LinearLayout.VERTICAL);frame.setBackgroundColor(0xfff7f2e7);
+  android.graphics.drawable.GradientDrawable background=new android.graphics.drawable.GradientDrawable();background.setColor(0xfff7f2e7);background.setCornerRadius(20*getResources().getDisplayMetrics().density);frame.setBackground(background);frame.setClipToOutline(true);
+  overlayWeb=LocalWeb.create(this);overlayWeb.addJavascriptInterface(new OverlayBridge(),"Android");frame.addView(overlayWeb,new LinearLayout.LayoutParams(-1,0,1));
+  Button back=new Button(this);back.setText("回到留白");back.setTextColor(0xff1b5143);back.setBackgroundColor(0xfff7f2e7);back.setOnClickListener(v->openApp());frame.addView(back,new LinearLayout.LayoutParams(-1,-2));
+  android.util.DisplayMetrics screen=getResources().getDisplayMetrics();int width=Math.min(screen.widthPixels-(int)(24*screen.density),(int)(540*screen.density));int height=Math.min((int)(screen.heightPixels*.82),(int)(720*screen.density));
+  WindowManager.LayoutParams params=new WindowManager.LayoutParams(width,height,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,PixelFormat.TRANSLUCENT);params.gravity=Gravity.CENTER;params.softInputMode=WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE;
+  try{windows.addView(frame,params);overlay=frame;overlayWeb.loadUrl(LocalWeb.ORIGIN+"overlay.html");}catch(Exception e){hideOverlay();stop("系统未能显示悬浮提醒，请重新检查悬浮窗权限");}
  }
- private void hideOverlay(){if(overlay!=null){try{windows.removeView(overlay);}catch(Exception ignored){}overlay=null;}noticeId=null;}
+ private void openApp(){hideOverlay();startActivity(new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP));}
+ android.webkit.WebView overlayForTest(){return overlayWeb;}
+ static android.webkit.WebView currentOverlayForTest(){return active==null?null:active.overlayWeb;}
+ public final class OverlayBridge {
+  @android.webkit.JavascriptInterface public void request(int id,String method,String raw){handler.post(()->{
+   final android.webkit.WebView source=overlayWeb;if(source==null)return;
+   try{
+    JSONObject args=new JSONObject(raw);args.put("id",noticeId);
+    if("open_app".equals(method)){openApp();return;}
+    if(!java.util.Arrays.asList("load","allow","leave","save_tags").contains(method))throw new Exception("不支持的提醒操作");
+    EngineHost.get(FocusService.this).call("load".equals(method)?"load_notice":method,args,result->{
+     if(source!=overlayWeb)return;source.evaluateJavascript("window.nativeReply("+id+","+result+")",null);
+     if(!result.has("error")&&("allow".equals(method)||"leave".equals(method)){
+      if("leave".equals(method)){suppressedPackage=foreground;startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));}
+      hideOverlay();
+     }
+    });
+   }catch(Exception e){source.evaluateJavascript("window.nativeReply("+id+","+EngineHost.error(e.getMessage())+")",null);}
+  });}
+ }
+ private void hideOverlay(){if(overlay!=null){try{windows.removeView(overlay);}catch(Exception ignored){}overlay=null;}if(overlayWeb!=null){overlayWeb.removeJavascriptInterface("Android");overlayWeb.destroy();overlayWeb=null;}noticeId=null;}
  @Override public void onDestroy(){handler.removeCallbacks(pulse);hideOverlay();active=null;EngineHost.get(this).call("management",MainActivity.jsonEnabled(false),r->{});super.onDestroy();}
  @Override public IBinder onBind(Intent i){return null;}
 }

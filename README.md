@@ -26,18 +26,19 @@
 
 新增 Android 9+ APK 内测工程，需 Android System WebView / Chrome 100+，面向国内安卓应用商店继续准备发行
 
-到 [Android 构建记录](https://github.com/FCuriosity/negative-space/actions/workflows/android.yml) 选择通过测试的运行，在 Artifacts 下载 `liubai-android-alpha2` 并解压 APK 安装
+到 [Android 构建记录](https://github.com/FCuriosity/negative-space/actions/workflows/android.yml) 选择通过测试的运行，在 Artifacts 下载 `liubai-android-alpha3-ci` 并解压 APK 进行构建验证；日常内测请使用本机固定签名的 `liubai-0.1.0-alpha3.apk`，两种证书不能混装覆盖
 
 手机端支持微信、B站、小红书、抖音的前台时长与切回次数统计，以及每日/星期配额、允许时段和温和悬浮提醒；保留专注、每日事项、历历在目和镜湖
-它不会结束其他 App，不能隐藏其他 App 内的推荐流，桌面时间表、严格防绕过和跨设备同步尚未移植
+它不会结束其他 App，不能隐藏其他 App 内的推荐流，已接入专注空间、背景图片、时间表、摩擦挑战、统计、习惯和本地备份；严格防绕过和跨设备同步尚未提供
 
-alpha2 使用独立包名，可与 alpha1 共存，旧版记录不会自动迁移；请保留旧版，并暂停旧版管理后测试「留白修复内测」
+alpha3 使用独立包名，可与 alpha1/alpha2 共存，旧版记录不会自动迁移；请保留旧版，并暂停旧版管理后测试「留白内测」
 
 专注页可选择微信等应用，点击「开始专注并开启提醒」后无需用完每日配额即可提醒；「仅计时」不增加应用限制。设置页提供系统悬浮提醒测试、运行诊断与 OPPO 后台设置入口
 
 首次使用：选一个应用 → 设置温和规则 → 安全演示 → 授权使用情况访问与悬浮提醒 → 手动正式开启管理
 
 内测包使用 debug 签名，不可直接提交正式商店；不同构建的测试签名可能不同，不能保证覆盖升级，卸载会清除本地记录
+功能对照、平台边界及固定内测签名见 [安卓功能对照](docs/ANDROID_PARITY.md)
 正式发行的签名、资质、隐私政策和真机验收步骤见 [安卓安装与国内发行指南](docs/ANDROID_DISTRIBUTION.md)
 
 ## 第一次使用，先做三件事
