@@ -12,6 +12,7 @@ import org.json.*;
 
 public final class MainActivity extends Activity {
  private WebView web;
+ private boolean resumed=false;
  private int pendingFileRequest=-1;private String pendingFileMethod=null;private String pendingExport=null;
  private View testOverlay;
  private final Runnable dismissTest=()->hideTest();
@@ -26,8 +27,17 @@ public final class MainActivity extends Activity {
   });frame.requestApplyInsets();
   web.loadUrl(LocalWeb.ORIGIN+"index.html");
  }
- @Override protected void onResume(){super.onResume();handler.post(pulse);}
- @Override protected void onPause(){handler.removeCallbacks(pulse);super.onPause();}
+ @Override protected void onResume(){super.onResume();resumed=true;handler.removeCallbacks(pulse);handler.post(pulse);resumeSavedManagement();}
+ @Override protected void onPause(){resumed=false;handler.removeCallbacks(pulse);super.onPause();}
+ private void resumeSavedManagement(){
+  // Wait for SQLite migration and engine initialization, then check the live user choice.
+  EngineHost.get(this).call("load",new JSONObject(),result->{
+   if(result.has("error")||!resumed||isFinishing()||isDestroyed()||FocusService.running()||!ManagementState.requested(this))return;
+   if(!FocusService.hasUsage(this)||!Settings.canDrawOverlays(this))return;
+   try{startForegroundService(new Intent(this,FocusService.class));}
+   catch(Exception e){getSharedPreferences("diagnostics",0).edit().putString("lastStop","规则与管理选择已保存，系统暂未允许恢复，请检查后台运行设置后重试").apply();}
+  });
+ }
  @Override protected void onDestroy(){handler.removeCallbacks(dismissTest);hideTest();web.removeJavascriptInterface("Android");web.destroy();super.onDestroy();}
  private void respond(int id,JSONObject result){if(!isFinishing()&&!isDestroyed())web.evaluateJavascript("window.nativeReply("+id+","+result+")",null);}
  android.webkit.WebView uiForTest(){return web;}
@@ -43,8 +53,8 @@ public final class MainActivity extends Activity {
     }
     if(method.equals("immersive")){boolean enabled=args.optBoolean("enabled");if(Build.VERSION.SDK_INT>=30){if(enabled)getWindow().getInsetsController().hide(WindowInsets.Type.systemBars());else getWindow().getInsetsController().show(WindowInsets.Type.systemBars());}else getWindow().getDecorView().setSystemUiVisibility(enabled?View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY:View.SYSTEM_UI_FLAG_VISIBLE);respond(id,new JSONObject());return;}
     if(method.equals("leave")){EngineHost.get(MainActivity.this).call(method,args,r->{respond(id,r);if(!r.has("error"))startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME));});return;}
-    if(method.equals("restore")){EngineHost.get(MainActivity.this).call(method,args,r->{if(!r.has("error"))FocusService.pause();respond(id,r);});return;}
-    if(method.equals("permissions")){JSONObject r=new JSONObject();r.put("usage",FocusService.hasUsage(MainActivity.this));r.put("overlay",Settings.canDrawOverlays(MainActivity.this));r.put("notifications",Build.VERSION.SDK_INT<33||checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED);r.put("running",FocusService.running());r.put("diagnostics",FocusService.diagnostics(MainActivity.this));r.put("device",Build.MANUFACTURER+" "+Build.MODEL+" · Android "+Build.VERSION.RELEASE);android.content.pm.PackageInfo w=WebView.getCurrentWebViewPackage();r.put("webview",w==null?"未知":w.versionName);respond(id,r);return;}
+    if(method.equals("restore")){EngineHost.get(MainActivity.this).call(method,args,r->{if(!r.has("error"))FocusService.pause(MainActivity.this);respond(id,r);});return;}
+    if(method.equals("permissions")){JSONObject r=new JSONObject();r.put("usage",FocusService.hasUsage(MainActivity.this));r.put("overlay",Settings.canDrawOverlays(MainActivity.this));r.put("notifications",Build.VERSION.SDK_INT<33||checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED);r.put("running",FocusService.running());r.put("requested",ManagementState.requested(MainActivity.this));r.put("diagnostics",FocusService.diagnostics(MainActivity.this));r.put("device",Build.MANUFACTURER+" "+Build.MODEL+" · Android "+Build.VERSION.RELEASE);android.content.pm.PackageInfo w=WebView.getCurrentWebViewPackage();r.put("webview",w==null?"未知":w.versionName);respond(id,r);return;}
     if(method.equals("overlay_test")){showTest();respond(id,new JSONObject());return;}
     if(method.equals("settings")){
      String page=args.getString("page");Intent intent;
@@ -63,8 +73,9 @@ public final class MainActivity extends Activity {
     if(method.equals("management")){
      boolean enable=args.getBoolean("enabled");
      if(enable&&(!FocusService.hasUsage(MainActivity.this)||!Settings.canDrawOverlays(MainActivity.this)))throw new Exception("请先授权使用情况访问与悬浮提醒");
+     if(!enable)ManagementState.setRequested(MainActivity.this,false);
      EngineHost.get(MainActivity.this).call(method,args,r->{
-      try {if(!r.has("error")){if(enable){if(!FocusService.running())startForegroundService(new Intent(MainActivity.this,FocusService.class));}else FocusService.pause();}}catch(Exception e){FocusService.pause();EngineHost.get(MainActivity.this).call("management",jsonEnabled(false),ignored->{});r=EngineHost.error("后台服务未能启动，请重试");}
+      try {if(!r.has("error")){if(enable){ManagementState.setRequested(MainActivity.this,true);startForegroundService(new Intent(MainActivity.this,FocusService.class));}else FocusService.pause(MainActivity.this);}}catch(Exception e){FocusService.suspend("后台服务未能启动，管理选择已保留，请重试");EngineHost.get(MainActivity.this).call("management",jsonEnabled(false),ignored->{});r=EngineHost.error("后台服务未能启动，规则已保存，请重试");}
       respond(id,r);
      });return;
     }
@@ -77,7 +88,7 @@ public final class MainActivity extends Activity {
   final boolean wasRunning=FocusService.running();
   EngineHost.get(this).call(method,args,result->{
    if(result.has("error")){reply.done(result);return;}
-   try{if(!FocusService.running())startForegroundService(new Intent(this,FocusService.class));reply.done(result);}
+   try{ManagementState.setRequested(this,true);if(!FocusService.running())startForegroundService(new Intent(this,FocusService.class));reply.done(result);}
    catch(Exception e){
     try{org.json.JSONArray sessions=result.getJSONObject("state").getJSONArray("sessions");for(int j=0;j<sessions.length();j++){JSONObject session=sessions.getJSONObject(j);if("active".equals(session.optString("status")))EngineHost.get(this).call("focus_start_failed",new JSONObject().put("id",session.getString("id")),ignored->{});}}catch(Exception ignored){}
     if(!wasRunning)EngineHost.get(this).call("management",jsonEnabled(false),ignored->{});

@@ -7,8 +7,10 @@ import java.util.concurrent.*;
 
 /** Tests the packaged engine, bridge, SQLite and OS usage events with an emulator-only fixture. */
 public final class SmokeInstrumentation extends Instrumentation {
- @Override public void onCreate(Bundle args){super.onCreate(args);start();}
+ private String phase="full";
+ @Override public void onCreate(Bundle args){super.onCreate(args);if(args!=null)phase=args.getString("phase","full");start();}
  @Override public void onStart(){Bundle report=new Bundle();try{
+  if(!"full".equals(phase)){verifyRelaunch();report.putString("stream","LIUBAI_RELAUNCH_OK: "+phase+"\n");finish(0,report);return;}
   UsageCursor cursor=new UsageCursor();
   if(!cursor.accept(100,"wechat")||cursor.accept(100,"wechat")||!cursor.accept(100,"home")||!cursor.accept(105,"late")||cursor.accept(104,"older"))throw new Exception("Usage cursor duplicate/delayed event handling failed");
   MainActivity activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -79,8 +81,33 @@ public final class SmokeInstrumentation extends Instrumentation {
   android.graphics.Bitmap lakeShot=getUiAutomation().takeScreenshot();
   if(lakeShot==null)throw new Exception("Lake screenshot unavailable");
   try(java.io.FileOutputStream out=new java.io.FileOutputStream(new java.io.File(getTargetContext().getExternalFilesDir(null),"smoke-lake.png"))){lakeShot.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}lakeShot.recycle();
+  // Leave enabled intent on disk; the workflow kills this process before the next phase.
+  JSONObject armed=bridge(activity,"management",MainActivity.jsonEnabled(true));
+  if(armed.has("error")||!ManagementState.requested(getTargetContext()))throw new Exception("Management intent was not persisted");
+  Thread.sleep(1200);runOnMainSync(activity::finish);Thread.sleep(600);
+  if(!FocusService.running()||!ManagementState.requested(getTargetContext()))throw new Exception("Closing the UI stopped management");
   report.putString("stream","LIUBAI_ANDROID_SMOKE_OK: cached mirror sky, stable real-light reset, shared overlay form, tag selection, inline reason grant, chunked 3MB persistence, permission denial, real focus bridge starts service, WeChat focus below quota, delayed-event cursor, daily quota after focus,  packaged engine, first-rule safety, SQLite, OS foreground events, 3 activations, native overlay, pause cleanup\n");finish(0,report);
  }catch(Exception e){runOnMainSync(FocusService::pause);report.putString("stream","LIUBAI_ANDROID_SMOKE_FAILED: "+e+"\n");finish(1,report);}}
+ private void verifyRelaunch()throws Exception{
+  MainActivity activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+  boolean expected=!"paused".equals(phase);boolean allowed=!"permission-denied".equals(phase);
+  JSONObject result=null;
+  for(int i=0;i<25;i++){result=call("load",new JSONObject());if(FocusService.running()==(expected&&allowed)&&result.optBoolean("enabled")== (expected&&allowed))break;Thread.sleep(400);}
+  if(ManagementState.requested(getTargetContext())!=expected)throw new Exception("Persisted user intent changed on restart: "+phase);
+  if(FocusService.running()!=(expected&&allowed)||result.optBoolean("enabled")!=(expected&&allowed))throw new Exception("Incorrect service recovery: "+phase);
+  JSONArray rules=result.getJSONObject("state").getJSONArray("rules");
+  if(rules.length()!=1||rules.getJSONObject(0).getInt("dailyMinutes")!=30||rules.getJSONObject(0).getInt("dailyOpens")!=0)throw new Exception("Edited rule lost on cold restart");
+  if(result.getJSONObject("state").getJSONArray("opens").length()<3||!result.getJSONObject("state").getJSONArray("openReasons").toString().contains("摸鱼"))throw new Exception("History lost on cold restart");
+  if("resume".equals(phase)){
+   // Confirm automatic recovery actually enforces the saved rule on a foreground app.
+   int before=result.getJSONObject("state").getJSONArray("opens").length();
+   runOnMainSync(()->activity.startActivity(new Intent().setClassName("com.tencent.mm","cn.liubai.fixture.FixtureActivity").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)));
+   awaitOpens(before+1);Thread.sleep(1500);if(!FocusService.hasOverlay())throw new Exception("Recovered service did not enforce saved quota");
+   runOnMainSync(()->activity.startActivity(new Intent(activity,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP)));Thread.sleep(500);
+   JSONObject paused=bridge(activity,"management",MainActivity.jsonEnabled(false));if(paused.has("error"))throw new Exception("Explicit pause failed");
+   Thread.sleep(1200);if(FocusService.running()||ManagementState.requested(getTargetContext()))throw new Exception("Pause choice was not durable");
+  }
+ }
  private String uiEval(MainActivity activity,String script)throws Exception{
   CountDownLatch latch=new CountDownLatch(1);String[] value=new String[]{""};runOnMainSync(()->activity.uiForTest().evaluateJavascript(script,r->{value[0]=r;latch.countDown();}));if(!latch.await(5,TimeUnit.SECONDS))throw new Exception("UI evaluation timeout");return value[0];
  }

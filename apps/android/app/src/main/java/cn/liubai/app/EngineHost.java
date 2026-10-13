@@ -20,7 +20,7 @@ final class EngineHost {
  private EngineHost(Context c){
   store=new StateStore(c); web=LocalWeb.create(c);
   web.setTag((Runnable)()->{
-   try {String raw=store.read();evaluate("AndroidEngine.initialize("+(raw==null?"null":JSONObject.quote(raw))+")",true,r->{ready=true;JSONObject args=new JSONObject();try{args.put("timezone",java.util.TimeZone.getDefault().getID());}catch(Exception ignored){}call("timezone",args,ignored->{});drain();});}
+   try {String raw=store.read();ManagementState.migrate(c,raw);evaluate("AndroidEngine.initialize("+(raw==null?"null":JSONObject.quote(raw))+")",true,r->{ready=true;JSONObject args=new JSONObject();try{args.put("timezone",java.util.TimeZone.getDefault().getID());}catch(Exception ignored){}call("timezone",args,ignored->{});drain();});}
    catch(Exception e){fatal="本地记录无法读取，请保留数据并联系开发者";ready=true;drain();}
   });web.loadUrl(LocalWeb.ORIGIN+"runtime.html");
  }
@@ -45,7 +45,7 @@ final class EngineHost {
     if(result.has("error")){reply.done(result);return;}
     if(persist&&!envelope.isNull("snapshot")){store.write(envelope.getString("snapshot"));lastSave=SystemClock.elapsedRealtime();}
     latest=result;reply.done(result);
-   }catch(Exception e){fatal="本地引擎或存储出错，管理已暂停，请保留应用数据";FocusService.pause();reply.done(error(fatal));}
+   }catch(Exception e){fatal="本地引擎或存储出错，管理已暂停，请保留应用数据";FocusService.suspend(fatal);reply.done(error(fatal));}
   });
  }
 }

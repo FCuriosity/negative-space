@@ -23,7 +23,9 @@ export class AndroidRuntime {
   const fresh=firstRunState(androidPolicy(initialState()));
   this.engine=new NativeEngine(raw??JSON.stringify({format:1,app:fresh,enabled:false,breaks:{},grants:{},notices:[]}));
   this.engine.data.app=androidPolicy(this.engine.policy());
-  this.engine.setEnabled(false); // A killed service never silently resumes enforcement.
+  // The native service validates persisted user intent and permissions before resuming.
+  // A UI-only engine must not pretend that foreground monitoring is already running.
+  this.engine.setEnabled(false);
  }
  state(){return this.engine.policy();}
  snapshot(){return this.engine.serialize();}
@@ -57,7 +59,7 @@ export class AndroidRuntime {
     this.engine=new NativeEngine(JSON.stringify({format:1,app:restored,enabled:false,breaks:{},grants:{},notices:[]}));this.engine.data.app=restored;return {state:restored,enabled:false,notice:null,monotonicMs:mono};
    }
    case 'first_rule':e.updatePolicy(JSON.stringify(prepareFirstRule(e.policy(),String(args.targetId),Number(args.minutes))),now);e.data.app=androidPolicy(e.policy());break;
-   case 'management':if(typeof args.enabled!=='boolean')throw Error('开关参数不正确');e.setEnabled(args.enabled);break;
+   case 'management':if(typeof args.enabled!=='boolean')throw Error('开关参数不正确');if(e.data.enabled!==args.enabled)e.setEnabled(args.enabled);break;
    case 'focus_start':{
     const minutes=Number(args.minutes);if(!Number.isInteger(minutes)||minutes<1||minutes>720)throw Error('请输入 1–720 分钟');
     const targetIds=args.targetIds??androidApps.map(a=>a.id);

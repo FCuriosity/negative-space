@@ -13,7 +13,13 @@ public final class FocusService extends Service {
  private static FocusService active;
  static boolean running(){return active!=null;}
  static boolean hasOverlay(){return active!=null&&active.overlay!=null;}
- static void pause(){if(active!=null)active.stop("你已暂停管理");}
+ static void pause(){if(active!=null)pause(active);}
+ static void pause(Context c){
+  ManagementState.setRequested(c,false);
+  EngineHost.get(c).call("management",MainActivity.jsonEnabled(false),ignored->{});
+  if(active!=null)active.stop("你已暂停管理");
+ }
+ static void suspend(String reason){if(active!=null)active.stop(reason);}
  static JSONObject diagnostics(Context c){
   JSONObject o=new JSONObject();try{
    o.put("lastStop",c.getSharedPreferences("diagnostics",0).getString("lastStop","尚未开启管理"));
@@ -28,21 +34,34 @@ public final class FocusService extends Service {
  static boolean hasUsage(Context c){AppOpsManager ops=(AppOpsManager)c.getSystemService(APP_OPS_SERVICE);return ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,android.os.Process.myUid(),c.getPackageName())==AppOpsManager.MODE_ALLOWED;}
  private final Handler handler=new Handler(Looper.getMainLooper());
  private long queriedAt=0,heartbeat=0,lastEvent=0;private final UsageCursor cursor=new UsageCursor();private String foreground=null,noticeId=null,lastRecognized="";
+ private int generation=0;
  private android.webkit.WebView overlayWeb;
  private String suppressedPackage=null;
  private View overlay;private WindowManager windows;
  @Override public void onCreate(){super.onCreate();active=this;windows=(WindowManager)getSystemService(WINDOW_SERVICE);}
  @Override public int onStartCommand(Intent i,int flags,int id){
-  if(i!=null&&"pause".equals(i.getAction())){stop("你已暂停管理");return START_NOT_STICKY;}
+  if(i!=null&&"pause".equals(i.getAction())){pause(this);return START_NOT_STICKY;}
+  if(!ManagementState.requested(this)){stop("管理已暂停");return START_NOT_STICKY;}
+  if(!hasUsage(this)||!Settings.canDrawOverlays(this)){stop("管理选择已保存，请恢复使用情况访问与悬浮提醒权限");return START_NOT_STICKY;}
   NotificationManager nm=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
   nm.createNotificationChannel(new NotificationChannel("focus","留白管理状态",NotificationManager.IMPORTANCE_LOW));
   PendingIntent open=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
   PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,FocusService.class).setAction("pause"),PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
   Notification n=new Notification.Builder(this,"focus").setSmallIcon(cn.liubai.app.R.drawable.brand).setContentTitle("留白正在记录前台使用").setContentText("仅记录所选应用 · 点此查看 · 可随时暂停").setContentIntent(open).setOngoing(true).addAction(new Notification.Action.Builder(null,"暂停管理",stop).build()).build();
-  startForeground(1,n);getSharedPreferences("diagnostics",0).edit().putString("lastStop","服务曾运行，若已停止，可能被系统回收，请重新开启").apply();handler.removeCallbacks(pulse);handler.post(pulse);return START_NOT_STICKY;
+  startForeground(1,n);getSharedPreferences("diagnostics",0).edit().putString("lastStop","系统可能停止了后台服务，再次打开留白会按已保存的选择恢复").apply();
+  final int cycle=++generation;
+  handler.removeCallbacks(pulse);
+  EngineHost.get(this).call("management",MainActivity.jsonEnabled(true),result->{
+   if(active!=this||cycle!=generation)return;
+   if(!ManagementState.requested(this)){stop("你已暂停管理");return;}
+   if(result.has("error")){stop(result.optString("error"));return;}
+   handler.removeCallbacks(pulse);handler.post(pulse);
+  });
+  return START_STICKY;
  }
  private final Runnable pulse=new Runnable(){public void run(){
-  if(!hasUsage(FocusService.this)||!Settings.canDrawOverlays(FocusService.this)){stop("使用情况访问或悬浮提醒权限已关闭");return;}
+  if(!ManagementState.requested(FocusService.this)){stop("你已暂停管理");return;}
+  if(!hasUsage(FocusService.this)||!Settings.canDrawOverlays(FocusService.this)){stop("管理选择已保存，请恢复使用情况访问与悬浮提醒权限");return;}
   try {
   boolean locked=!((PowerManager)getSystemService(POWER_SERVICE)).isInteractive()||((KeyguardManager)getSystemService(KEYGUARD_SERVICE)).isKeyguardLocked();
   long now=System.currentTimeMillis();
@@ -58,8 +77,9 @@ public final class FocusService extends Service {
   }}queriedAt=now;
   if(locked)foreground=null;
   final String front=foreground;
+  final int cycle=generation;
   EngineHost.get(FocusService.this).tickBatch(samples,front,locked,result->{
-   if(active!=FocusService.this)return;
+   if(active!=FocusService.this||cycle!=generation)return;
    if(result.has("error")){stop(result.optString("error"));return;}
    if(!result.optBoolean("enabled")){stop("管理已暂停");return;}heartbeat=System.currentTimeMillis();
    if(suppressedPackage!=null&&!suppressedPackage.equals(front))suppressedPackage=null;
@@ -99,6 +119,6 @@ public final class FocusService extends Service {
   });}
  }
  private void hideOverlay(){if(overlay!=null){try{windows.removeView(overlay);}catch(Exception ignored){}overlay=null;}if(overlayWeb!=null){overlayWeb.removeJavascriptInterface("Android");overlayWeb.destroy();overlayWeb=null;}noticeId=null;}
- @Override public void onDestroy(){handler.removeCallbacks(pulse);hideOverlay();active=null;EngineHost.get(this).call("management",MainActivity.jsonEnabled(false),r->{});super.onDestroy();}
+ @Override public void onDestroy(){generation++;handler.removeCallbacks(pulse);hideOverlay();if(active==this){active=null;EngineHost.get(this).call("management",MainActivity.jsonEnabled(false),r->{});}super.onDestroy();}
  @Override public IBinder onBind(Intent i){return null;}
 }

@@ -3,7 +3,23 @@ import {AndroidRuntime,androidApps} from '../runtime';
 const start=Date.UTC(2026,9,12,1);
 function runtime(){const r=new AndroidRuntime(null);r.call('first_rule',{targetId:'wechat',minutes:1},start,0);r.call('management',{enabled:true},start,0);r.tick('cn.liubai.app.preview',start,0,false);return r;}
 describe('Android native rules adapter',()=>{
- it('starts with no rules and never starts managing on install or restart',()=>{const r=new AndroidRuntime(null);expect(r.state().rules).toEqual([]);expect(r.engine.data.enabled).toBe(false);const configured=runtime();const reopened=new AndroidRuntime(configured.snapshot());expect(reopened.engine.data.enabled).toBe(false);expect(reopened.state().rules).toHaveLength(1);});
+ it('keeps rules on restart and waits for the native service to validate saved intent',()=>{const r=new AndroidRuntime(null);expect(r.state().rules).toEqual([]);expect(r.engine.data.enabled).toBe(false);const configured=runtime();const reopened=new AndroidRuntime(configured.snapshot());expect(reopened.engine.data.enabled).toBe(false);expect(reopened.state().rules).toHaveLength(1);});
+ it('restores quotas and history without charging time while the process was stopped',()=>{
+  const r=runtime();r.call('patch',{patch:{rules:r.state().rules.map(x=>({...x,dailyMinutes:17,dailyOpens:9,weekdays:{1:{dailyMinutes:13,dailyOpens:7}},allowedWindows:[{days:[1],start:480,end:720}]}))}},start,0);
+  r.tick('com.tencent.mm',start+1000,1000,false);r.tick('com.tencent.mm',start+2000,2000,false);
+  const reopened=new AndroidRuntime(r.snapshot());expect(reopened.state().rules).toEqual(r.state().rules);expect(reopened.state().opens).toEqual(r.state().opens);
+  const used=reopened.state().usage.reduce((n,x)=>n+x.end-x.start,0);
+  reopened.call('management',{enabled:true},start+3600000,0);reopened.tick('cn.liubai.app.preview3',start+3600000,0,false);
+  expect(reopened.state().usage.reduce((n,x)=>n+x.end-x.start,0)).toBe(used);
+  reopened.tick('com.tencent.mm',start+3601000,1000,false);expect(reopened.state().opens).toHaveLength(2);
+ });
+ it('repeated start requests do not erase a five-minute grant or duplicate the same foreground visit',()=>{
+  const r=runtime();r.call('patch',{patch:{rules:r.state().rules.map(x=>({...x,dailyOpens:0}))}},start,0);
+  const notice=r.tick('com.tencent.mm',start+1000,1000,false).notice!;
+  r.call('allow',{id:notice.id,reason:'回复必要消息',intention:'intentional'},start+2000,2000);
+  const grants=structuredClone(r.engine.data.grants);r.call('management',{enabled:true},start+2500,2500);
+  const result=r.tick('com.tencent.mm',start+3000,3000,false);expect(result.notice).toBeNull();expect(r.engine.data.grants).toEqual(grants);expect(r.state().opens).toHaveLength(1);
+ });
  it('counts each foreground return, including sub-second events, but not same-app activity transitions',()=>{const r=runtime();r.tick('com.tencent.mm',start+100,100,false);r.tick('com.tencent.mm',start+200,200,false);r.tick('com.android.launcher',start+300,300,false);r.tick('com.tencent.mm',start+400,400,false);expect(r.state().opens).toHaveLength(2);r.tick('cn.liubai.app.preview',start+500,500,false);r.tick('com.tencent.mm',start+600,600,false);expect(r.state().opens).toHaveLength(3);});
  it('only tracks selected apps and excludes screen-off periods',()=>{const r=runtime();r.tick('tv.danmaku.bili',start+1000,1000,false);expect(r.state().opens).toHaveLength(0);r.tick('com.tencent.mm',start+2000,2000,false);r.tick('com.tencent.mm',start+3000,3000,false);r.tick(null,start+4000,4000,true);r.tick(null,start+60000,60000,true);expect(r.state().usage.reduce((s,x)=>s+(x.end-x.start),0)).toBeLessThanOrEqual(2000);});
  it('keeps the reminder available when entering Liubai, records accidental opening and grants five minutes',()=>{const r=runtime();const s=r.state();r.call('save',{state:{...s,rules:s.rules.map(x=>({...x,dailyOpens:0}))}},start,0);const result=r.tick('com.tencent.mm',start+1000,1000,false);expect(result.overlayNotice).not.toBeNull();const notice=result.notice!;expect(r.tick('cn.liubai.app.preview',start+2000,2000,false).overlayNotice).toBeNull();expect(r.engine.data.notices).toHaveLength(1);r.call('allow',{id:notice.id,reason:'无意识打开',intention:'accidental'},start+3000,3000);expect(r.state().opens[0].intention).toBe('accidental');r.tick('com.tencent.mm',start+4000,4000,false);expect(r.state().opens).toHaveLength(1);expect(r.engine.data.notices).toHaveLength(0);});

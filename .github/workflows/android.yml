@@ -36,12 +36,12 @@ jobs:
       - name: Verify signed APK
         run: |
           mkdir -p dist/android
-          cp apps/android/app/build/outputs/apk/debug/app-debug.apk dist/android/liubai-0.1.0-alpha4-ci.apk
+          cp apps/android/app/build/outputs/apk/debug/app-debug.apk dist/android/liubai-0.1.0-alpha5-ci.apk
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/android/*.apk > dist/android/signature.txt
           sha256sum dist/android/*.apk > dist/android/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: liubai-android-alpha4-ci
+          name: liubai-android-alpha5-ci
           path: dist/android/
           if-no-files-found: error
           retention-days: 30
@@ -58,7 +58,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install dist/android/liubai-0.1.0-alpha4-ci.apk
+            adb install dist/android/liubai-0.1.0-alpha5-ci.apk
             adb shell am start -W -n cn.liubai.app.preview3/cn.liubai.app.MainActivity
             sleep 12
             adb shell pidof cn.liubai.app.preview3
@@ -79,6 +79,17 @@ jobs:
             cat dist/android/smoke-log.txt
             grep -q 'LIUBAI_ANDROID_SMOKE_OK' dist/android/instrumentation.txt
             ! grep -q 'FATAL EXCEPTION' dist/android/smoke-log.txt
+            adb shell am force-stop cn.liubai.app.preview3
+            adb shell appops set cn.liubai.app.preview3 GET_USAGE_STATS ignore
+            adb shell am instrument -w -e phase permission-denied cn.liubai.app.preview3.test/cn.liubai.app.SmokeInstrumentation > dist/android/relaunch-permission.txt
+            grep -q 'LIUBAI_RELAUNCH_OK' dist/android/relaunch-permission.txt
+            adb shell am force-stop cn.liubai.app.preview3
+            adb shell appops set cn.liubai.app.preview3 GET_USAGE_STATS allow
+            adb shell am instrument -w -e phase resume cn.liubai.app.preview3.test/cn.liubai.app.SmokeInstrumentation > dist/android/relaunch-enabled.txt
+            grep -q 'LIUBAI_RELAUNCH_OK' dist/android/relaunch-enabled.txt
+            adb shell am force-stop cn.liubai.app.preview3
+            adb shell am instrument -w -e phase paused cn.liubai.app.preview3.test/cn.liubai.app.SmokeInstrumentation > dist/android/relaunch-paused.txt
+            grep -q 'LIUBAI_RELAUNCH_OK' dist/android/relaunch-paused.txt
             adb shell am start -W -n cn.liubai.app.preview3/cn.liubai.app.MainActivity
             sleep 5
             adb shell screencap -p /sdcard/liubai.png
@@ -90,4 +101,5 @@ jobs:
           path: |
             dist/android/smoke*
             dist/android/instrumentation.txt
+            dist/android/relaunch-*.txt
             apps/android/app/build/reports/lint-results-debug.html
