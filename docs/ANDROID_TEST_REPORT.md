@@ -106,3 +106,26 @@ APK v3 签名验证通过，与上次提供的固定签名 alpha3 证书一致�
 覆盖固定签名 alpha3 时无需卸载；CI 临时证书版不能混装覆盖，OPPO ColorOS 17 的实际手感仍待用户复测
 
 补充视觉验收：[Actions 38286754633](https://github.com/FCuriosity/negative-space/actions/runs/38286754633) 通过，测试先关闭提前结束后的心得弹窗再截图，已检查无遮挡的真实 0% 湖面；此提交只调整测试脚本，应用代码与交付 APK 相同
+
+
+## Alpha5 · 管理选择保存与重新打开恢复（2026-10-13）
+
+原因：规则已写入 SQLite，但 AndroidRuntime 每次进程初始化都关闭运行状态，旧服务使用 START_NOT_STICKY，界面再次打开不恢复已开启的选择
+
+- 用独立的本机持久设置记录用户开启 / 暂停选择；服务销毁或系统回收只改变运行状态，不抹掉该选择
+- 从旧版有明确 enabled=true 的快照迁移开启选择；如果旧版已写成关闭状态，无法推断曾经的意愿，需要升级后开启一次
+- 关闭界面不停止服务；系统允许时采用 START_STICKY 恢复，重新进入前台也会验证权限并恢复
+- 主动暂停、通知暂停和成功导入备份保持关闭；权限被撤销时不恢复管理，规则与意愿仍保存，恢复权限再回到留白后重试
+- 运行状态与保存选择分别显示；重复启动不会清掉当前临时放行或制造重复切回计数，停止期间不补算使用时间
+- 系统强停、重启和 ColorOS 后台限制仍可能中断服务；本次未添加开机广播，不承诺手机重启后未打开留白就自动管理
+
+验证：192 项逻辑测试、TypeScript、Android 本地资源打包和 Java 编译通过
+[Android Actions 38359330612](https://github.com/FCuriosity/negative-space/actions/runs/38359330612) 构建、lint 和 Android 15 原生验收全部通过，源码 `e0eace7ad1b7df7702bac7e953b408a1ba758afb`
+原生测试包含：关闭 Activity 后服务继续，独立进程重启后的规则与历史保留、权限失效不启动、恢复后受管应用触发真实悬浮提醒、主动暂停后再次冷启动保持暂停；保留镜湖与理由表单原有测试
+
+交付：`liubai-0.1.0-alpha5.apk`，6,412,236 字节，versionCode 5
+SHA256：`cd304fe759cc78210355176b0b27f09d75efdbe6b58232cb1e21d8fae8db443f`
+证书 SHA256：`a53a90ede1a560c9f5ce78bce5472f2e16bad4ca23ba1e63a5ae97cae9f275b2`
+APK v3 签名通过，与固定签名 alpha3 / alpha4 一致；代码和资源与通过测试的 CI APK 逐文件一致
+沿用 `cn.liubai.app.preview3`，请覆盖安装，不要卸载或清除数据；CI 临时证书包仍不可与固定签名包混装
+OPPO Find X10 / ColorOS 17 真机上的后台回收行为仍待用户复测，模拟器通过不代表厂商后台策略已全部验证
