@@ -76,3 +76,27 @@ footer nav a:hover { text-decoration: underline; }
 }
 @media (prefers-contrast: more) { :root { --muted: #344b40; --line: #7a8d7e; } }
 @media print { .hero { min-height: auto; padding: 32px 0; } .choices { padding: 32px 0; } }
+
+/* Explicit platform downloads remain usable without JavaScript */
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; margin-top: 36px; }
+.primary-action { display: inline-flex; align-items: center; justify-content: space-between; gap: 32px; padding: 15px 22px; background: #1b5143; color: #f7f2e7; border: 1px solid #1b5143; border-radius: 6px; text-decoration: none; font-size: 17px; font-weight: 600; }
+.primary-action:hover { background: #153f35; }
+.secondary-action { font-size: 15px; padding: 12px 0; }
+.hero .hero-version { font-size: 13px; line-height: 1.8; margin-top: 18px; }
+.android-download { color: #1b5143; }
+.android-guide { padding: 16px 0 80px; }
+.android-guide ol { list-style: none; padding: 0; margin: 32px 0; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 32px; }
+.android-guide li { border-top: 1px solid var(--line); padding-top: 20px; }
+.android-guide h3 { font-size: 17px; }
+.android-guide p { font-size: 14px; line-height: 1.9; color: var(--muted); }
+.android-notes { border-left: 3px solid #9cae98; padding: 4px 0 4px 22px; }
+.android-notes p + p { margin-top: 12px; }
+@media (max-width: 760px) {
+  .hero { min-height: auto; padding: 64px 0 72px; }
+  .hero-actions { gap: 16px 24px; margin-top: 28px; }
+  .primary-action { font-size: 16px; }
+  .download-link { align-items: flex-start; }
+  .download-link > span { max-width: 52%; text-align: right; line-height: 1.7; }
+  .android-guide ol { grid-template-columns: 1fr; gap: 28px; }
+  .android-guide .section-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+}

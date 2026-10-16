@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f6f0">
-  <meta name="description" content="面向 Mac 与 Windows 的本地优先专注工具，设置使用边界，记录打开意图，把时间留给真正想做的事">
+  <meta name="description" content="面向 Mac、Windows 与 Android 的本地优先专注工具，设置使用边界，记录打开意图，把时间留给真正想做的事">
   <title>留白 · 在顺手点开之前，给自己一次选择</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,12 @@
     <header class="hero">
       <div class="hero-copy">
         <h1>留白：在顺手点开之前，<br class="desktop-break">给自己一次选择</h1>
-        <p>面向 Mac 与 Windows 的本地优先专注工具<br>设置使用边界，记录打开意图，把时间留给真正想做的事</p>
+        <p>面向 Mac、Windows 与 Android 的本地优先专注工具<br>设置使用边界，记录打开意图，把时间留给真正想做的事</p>
+        <div class="hero-actions">
+          <a class="primary-action" href="https://github.com/FCuriosity/negative-space/releases/download/android-v0.1.0-alpha5/liubai-0.1.0-alpha5.apk">下载安卓版 APK <span aria-hidden="true">↓</span></a>
+          <a class="secondary-action" href="#download-title">选择电脑版 <span aria-hidden="true">↗</span></a>
+        </div>
+        <p class="hero-version">Android 9+ · alpha5 内测版 · 6.1 MB<br>直接下载安装，无需前往构建页面查找</p>
       </div>
     </header>
 
@@ -35,28 +40,41 @@
       <h2 id="choices-title">给自己一点余地</h2>
       <ol>
         <li><span class="step">01</span><div><h3>先定一个边界</h3><p>每天用多久、打开几次、什么时候可以用<br>边界由你来定</p></div></li>
-        <li><span class="step">02</span><div><h3>点开时，停一下</h3><p>写下打开的理由<br>也可以选择「无意识，但改邪归正」，确认关闭应用，回到手头的事</p></div></li>
+        <li><span class="step">02</span><div><h3>点开时，停一下</h3><p>写下打开的理由<br>也可以选择这次先放下，回到手头的事</p></div></li>
         <li><span class="step">03</span><div><h3>让投入留下痕迹</h3><p>完成一次专注，写下心得<br>镜湖收下一颗星，「历历在目」留住这一次选择</p></div></li>
       </ol>
     </section>
 
     <section class="download" aria-labelledby="download-title">
-      <div><p class="eyebrow">从下一次选择开始</p><h2 id="download-title">把留白放在电脑上</h2><p>本地运行，无需账号<br>记录与心得留在自己的电脑里</p></div>
+      <div><p class="eyebrow">从下一次选择开始</p><h2 id="download-title">在电脑，也在手机上</h2><p>本地运行，无需账号<br>记录与心得保存在各自设备上<br>当前不提供跨设备同步</p></div>
       <div class="download-actions">
-        <a class="download-link" href="https://github.com/FCuriosity/negative-space/releases">下载 Mac 版 <span>Apple 芯片 / Intel <span aria-hidden="true">↗</span></span></a>
-        <a class="download-link" href="https://github.com/FCuriosity/negative-space/releases">下载 Windows 版 <span>Windows 10 / 11 · x64 <span aria-hidden="true">↗</span></span></a>
-        <p class="download-note">链接进入 GitHub 发布页<br>Mac 按芯片选择 arm64 或 x64 的 DMG；Windows 选择 x64 setup.exe<br>当前为测试版，尚未完成 Apple 公证与 Windows 发布签名</p>
+        <a class="download-link android-download" href="https://github.com/FCuriosity/negative-space/releases/download/android-v0.1.0-alpha5/liubai-0.1.0-alpha5.apk">下载 Android 版 <span>Android 9+ · APK · alpha5 <span aria-hidden="true">↓</span></span></a>
+        <a class="download-link" href="https://github.com/FCuriosity/negative-space/releases/download/v0.12.2-beta.23/Liubai-0.12.2-macos-arm64.dmg">下载 Mac 版 <span>Apple 芯片 · DMG <span aria-hidden="true">↓</span></span></a>
+        <a class="download-link" href="https://github.com/FCuriosity/negative-space/releases/download/v0.12.2-beta.23/Liubai-0.12.2-macos-x64.dmg">下载 Mac 版 <span>Intel 芯片 · DMG <span aria-hidden="true">↓</span></span></a>
+        <a class="download-link" href="https://github.com/FCuriosity/negative-space/releases/download/v0.12.2-beta.23/Liubai-0.12.2-windows-x64-setup.exe">下载 Windows 版 <span>Windows 10 / 11 · x64 <span aria-hidden="true">↓</span></span></a>
+        <p class="download-note">按钮直接下载对应安装包 · <a href="https://github.com/FCuriosity/negative-space/releases">查看全部版本</a><br>安卓 alpha5 为内测版，可覆盖之前提供的固定签名 alpha3 / alpha4<br>桌面版 0.12.2 为测试版，尚未完成 Apple 公证与 Windows 发布签名</p>
+        <p class="download-note"><a href="#android-guide-title">安卓安装与首次开启 →</a> · <a href="https://github.com/FCuriosity/negative-space/releases/tag/android-v0.1.0-alpha5">安卓发布说明与校验值</a></p>
       </div>
+    </section>
+    <section class="android-guide" aria-labelledby="android-guide-title">
+      <div class="section-heading"><h2 id="android-guide-title">第一次在手机上使用</h2><span>从一条温和规则开始</span></div>
+      <ol>
+        <li><h3>01　下载并安装 APK</h3><p>在手机上打开上方安卓下载链接，下载完成后打开安装包<br>若系统询问安装来源，仅允许本次使用的浏览器或文件管理器安装，完成后可关闭该授权</p></li>
+        <li><h3>02　安全地体验一次提醒</h3><p>选一个容易分心的应用，设置每日时长，体验安全演示<br>目前支持微信、哔哩哔哩、小红书和抖音的安卓标准版</p></li>
+        <li><h3>03　由你开启，记住选择</h3><p>到设置授予使用情况访问和悬浮提醒，建议允许通知，再点击「正式开启管理」<br>以后重开留白会在权限有效时恢复上次的开启选择，主动暂停后保持暂停</p></li>
+      </ol>
+      <aside class="android-notes"><p><strong>已经装过留白？</strong>此前提供的固定签名 alpha3 / alpha4 可直接覆盖安装，请勿卸载或清除数据；建议先在设置导出本地备份</p><p>alpha1 / alpha2 与构建验证包的签名或包名不同，不能混装覆盖；遇到签名冲突请保留旧应用和记录，查看 <a href="https://github.com/FCuriosity/negative-space/blob/main/docs/ANDROID_DISTRIBUTION.md">安卓安装指南</a></p><p>ColorOS 等系统的省电策略可能停止后台服务，重新打开留白会尝试恢复；当前不保证被系统强停或手机重启后持续管理，暂不支持应用分身、App 内推荐流屏蔽或安卓浏览器网页管理</p></aside>
     </section>
   </main>
   <footer>
     <a class="wordmark" href="https://github.com/FCuriosity/negative-space" aria-label="留白 GitHub 仓库">留白<span aria-hidden="true"> / </span><span>NEGATIVE SPACE</span></a>
     <nav aria-label="进一步了解">
-      <a href="https://github.com/FCuriosity/negative-space/blob/main/docs/USER_GUIDE.md">使用指南</a>
+      <a href="https://github.com/FCuriosity/negative-space/blob/main/docs/USER_GUIDE.md">桌面使用指南</a>
+      <a href="#android-guide-title">安卓安装指南</a>
       <a href="https://github.com/FCuriosity/negative-space/blob/main/docs/DEVELOPMENT.md">开发文档</a>
       <a href="https://github.com/FCuriosity/negative-space">GitHub <span aria-hidden="true">↗</span></a>
     </nav>
-    <p class="boundaries">网页管理需另装浏览器扩展；原生应用按整个应用管理<br>退出留白后，管理停止</p>
+    <p class="boundaries">桌面网页管理需另装浏览器扩展；原生应用按整个应用管理<br>安卓提醒不会强制结束其他 App；关闭留白界面不等于暂停管理，可在设置或通知中主动暂停</p>
   </footer>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # 留白：在顺手点开之前，给自己一次选择。
 
-面向 Mac 与 Windows 的本地优先专注工具。设置使用边界，记录打开意图，把时间留给真正想做的事。
+面向 Mac、Windows 与 Android 的本地优先专注工具。设置使用边界，记录打开意图，把时间留给真正想做的事。
 
 ## 看一次完整使用过程
 
@@ -14,11 +14,12 @@
 
 前往 [GitHub Releases](https://github.com/FCuriosity/negative-space/releases) 下载对应安装包：
 
-| 你的电脑 | 选择的文件 |
+| 你的设备 | 选择的文件 |
 | --- | --- |
 | Apple 芯片 Mac（M 系列） | `macos-arm64.dmg` |
 | Intel Mac | `macos-x64.dmg` |
 | Windows 10 / 11，x64 | `windows-x64-setup.exe` |
+| Android 9+ 手机 | [直接下载 alpha5 APK](https://github.com/FCuriosity/negative-space/releases/download/android-v0.1.0-alpha5/liubai-0.1.0-alpha5.apk) |
 
 当前为测试版，尚未完成 Apple 公证与 Windows 发布签名；系统可能提示开发者未验证。更新前从菜单栏或托盘退出旧版，再安装新版，已有记录保留。详情见 [发布说明](docs/RELEASE.md)。
 
@@ -26,7 +27,9 @@
 
 新增 Android 9+ APK 内测工程，需 Android System WebView / Chrome 100+，面向国内安卓应用商店继续准备发行
 
-到 [Android 构建记录](https://github.com/FCuriosity/negative-space/actions/workflows/android.yml) 选择通过测试的运行，在 Artifacts 下载 `liubai-android-alpha5-ci` 并解压 APK 进行构建验证；日常内测请使用本机固定签名的 `liubai-0.1.0-alpha5.apk`，两种证书不能混装覆盖
+**[直接下载安卓安装包](https://github.com/FCuriosity/negative-space/releases/download/android-v0.1.0-alpha5/liubai-0.1.0-alpha5.apk)** · [安卓 Release 与校验值](https://github.com/FCuriosity/negative-space/releases/tag/android-v0.1.0-alpha5)
+
+下载后打开 APK 安装即可，不需要去 Actions 或 Artifacts 查找；这里发布的是固定内测签名包，可覆盖此前提供的同签名 alpha3 / alpha4
 
 手机端支持微信、B站、小红书、抖音的前台时长与切回次数统计，以及每日/星期配额、允许时段和温和悬浮提醒；保留专注、每日事项、历历在目和镜湖
 它不会结束其他 App，不能隐藏其他 App 内的推荐流，已接入专注空间、背景图片、时间表、摩擦挑战、统计、习惯和本地备份；严格防绕过和跨设备同步尚未提供
@@ -39,7 +42,7 @@ alpha5 会记住已开启的管理选择：关闭界面不中断服务，进程�
 
 首次使用：选一个应用 → 设置温和规则 → 安全演示 → 授权使用情况访问与悬浮提醒 → 手动正式开启管理
 
-内测包使用 debug 签名，不可直接提交正式商店；不同构建的测试签名可能不同，不能保证覆盖升级，卸载会清除本地记录
+Release APK 使用固定内测证书，仍为调试内测构建，不用于直接提交应用商店；Actions 中的 CI 验证包使用临时证书，不能与 Release 包混装覆盖，卸载会清除本地记录
 功能对照、平台边界及固定内测签名见 [安卓功能对照](docs/ANDROID_PARITY.md)
 正式发行的签名、资质、隐私政策和真机验收步骤见 [安卓安装与国内发行指南](docs/ANDROID_DISTRIBUTION.md)
 
